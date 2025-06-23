@@ -3,35 +3,25 @@
        name="MAL Tracker"
        version="1.0.0"
        provider-name="MAL-Tracker-Dev">
-    <extension point="xbmc.python.pluginsource" library="main.py">
-        <provides>video</provides>
-    </extension>
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.31.0"/>
     </requires>
+    <extension point="xbmc.python.pluginsource" library="main.py">
+        <provides>video</provides>
+    </extension>
     <extension point="xbmc.addon.metadata">
-        <reuselanguageinvoker>false</reuselanguageinvoker>
         <summary lang="en_GB">MyAnimeList tracker for Kodi</summary>
         <summary lang="es_ES">Rastreador de MyAnimeList para Kodi</summary>
         <description lang="en_GB">Track, search and update your MyAnimeList anime collection directly from Kodi using the official MAL API v2 with OAuth2 authentication.</description>
         <description lang="es_ES">Rastrea, busca y actualiza tu colección de anime de MyAnimeList directamente desde Kodi usando la API oficial MAL v2 con autenticación OAuth2.</description>
         <disclaimer lang="en_GB">This addon requires a MyAnimeList account and API credentials</disclaimer>
         <disclaimer lang="es_ES">Este addon requiere una cuenta de MyAnimeList y credenciales de API</disclaimer>
-        <language></language>
         <platform>all</platform>
         <license>MIT</license>
-        <forum></forum>
         <website>https://github.com/user/mal-tracker-kodi</website>
-        <email></email>
         <source>https://github.com/user/mal-tracker-kodi</source>
         <news>v1.0.0 - Initial release with full MAL API v2 compliance</news>
-        <assets>
-            <icon>icon.png</icon>
-            <fanart>fanart.jpg</fanart>
-            <screenshot>resources/screenshot-01.jpg</screenshot>
-            <screenshot>resources/screenshot-02.jpg</screenshot>
-        </assets>
     </extension>
     <extension point="xbmc.addon.settings">
         <setting id="client_id" type="text" label="30001" default="" />
