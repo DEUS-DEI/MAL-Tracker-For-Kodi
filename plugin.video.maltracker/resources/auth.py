@@ -18,8 +18,11 @@ def get_authorization_code():
     }
     url = AUTH_URL + '?' + '&'.join([f"{k}={v}" for k, v in params.items()])
     webbrowser.open(url)
-    print('Abre el enlace en tu navegador y pega el código de autorización:')
-    code = input('Código de autorización: ')
+    import xbmcgui
+    dialog = xbmcgui.Dialog()
+    dialog.ok('Autorización requerida', 'Abre el enlace en tu navegador y autoriza el acceso a tu cuenta de MyAnimeList. Luego, copia el código de autorización.')
+    # Cumple con https://myanimelist.net/apiconfig/references/authorization
+    code = dialog.input('Código de autorización:')
     return code
 
 # Paso 2: Intercambiar el código por un token de acceso
@@ -32,22 +35,24 @@ def get_access_token(auth_code):
         'code': auth_code,
         'redirect_uri': REDIRECT_URI
     }
-    response = requests.post(TOKEN_URL, data=data)
-    if response.status_code == 200:
+    # Cumple con https://myanimelist.net/apiconfig/references/api/v2
+    try:
+        response = requests.post(TOKEN_URL, data=data, timeout=10)
+        response.raise_for_status()
         token_data = response.json()
-        with open(TOKEN_FILE, 'w') as f:
-            json.dump(token_data, f)
+        with open(TOKEN_FILE, 'w', encoding='utf-8') as f:
+            json.dump(token_data, f, ensure_ascii=False, indent=2)
         return token_data['access_token']
-    else:
-        print('Error al obtener el token:', response.text)
+    except requests.RequestException as e:
+        print('Error al obtener el token:', str(e))
         return None
 
 # Paso 3: Cargar el token de acceso guardado
 
 def load_access_token():
     try:
-        with open(TOKEN_FILE, 'r') as f:
+        with open(TOKEN_FILE, 'r', encoding='utf-8') as f:
             token_data = json.load(f)
         return token_data['access_token']
-    except Exception:
+    except (FileNotFoundError, json.JSONDecodeError):
         return None
