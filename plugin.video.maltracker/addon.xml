@@ -1,9 +1,15 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.maltracker" name="MAL Tracker for Kodi" version="0.1.0" provider-name="TuNombre">
-    <extension point="xbmc.python.pluginsource" library="main.py" />
-    <extension point="xbmc.addon.metadata">
-        <summary>Addon para consultar y actualizar tu lista de anime en MyAnimeList</summary>
-        <description>Permite consultar y actualizar tu lista de anime usando la API oficial de MyAnimeList.</description>
-        <platform>all</platform>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.maltracker"
+       name="MAL Tracker"
+       version="0.1.0"
+       provider-name="TuNombre">
+    <extension point="xbmc.python.pluginsource" library="main.py">
+        <provides>video</provides>
     </extension>
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+    </requires>
+    <summary lang="es">Consulta y actualiza tu lista de anime de MyAnimeList desde Kodi</summary>
+    <description lang="es">Addon de video para consultar, buscar y actualizar tu lista de anime en MyAnimeList usando la API oficial y OAuth2.</description>
+    <platform>all</platform>
 </addon>
