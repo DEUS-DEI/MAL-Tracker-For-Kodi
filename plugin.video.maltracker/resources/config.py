@@ -1,14 +1,31 @@
-
-# Configuración para OAuth2 de MyAnimeList
 import xbmcaddon
+import xbmcvfs
+import os
+import time
+
 addon = xbmcaddon.Addon()
 CLIENT_ID = addon.getSetting('client_id')
-CLIENT_SECRET = 'TU_CLIENT_SECRET'  # Si quieres, puedes agregarlo como setting también
+CLIENT_SECRET = addon.getSetting('client_secret') or None
 REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 AUTH_URL = 'https://myanimelist.net/v1/oauth2/authorize'
 TOKEN_URL = 'https://myanimelist.net/v1/oauth2/token'
 API_BASE_URL = 'https://api.myanimelist.net/v2'
 
-# Aquí se almacenará el token de acceso
-ACCESS_TOKEN = None
-REFRESH_TOKEN = None
+# User-Agent obligatorio según API Agreement
+USER_AGENT = f"MALTracker-Kodi/{addon.getAddonInfo('version')} (https://github.com/user/mal-tracker-kodi)"
+
+# Rate limiting: 1 request per second
+last_request_time = 0
+
+def rate_limit():
+    global last_request_time
+    current_time = time.time()
+    if current_time - last_request_time < 1.0:
+        time.sleep(1.0 - (current_time - last_request_time))
+    last_request_time = time.time()
+
+# Ruta segura para tokens
+TOKEN_PATH = xbmcvfs.translatePath(addon.getAddonInfo('profile'))
+if not xbmcvfs.exists(TOKEN_PATH):
+    xbmcvfs.mkdirs(TOKEN_PATH)
+TOKEN_FILE = os.path.join(TOKEN_PATH, 'token.json')

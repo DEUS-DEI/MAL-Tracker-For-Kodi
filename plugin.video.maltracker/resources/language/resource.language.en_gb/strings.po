@@ -1,0 +1,15 @@
+# MAL Tracker Language File
+msgid ""
+msgstr ""
+
+msgctxt "#30001"
+msgid "MyAnimeList Client ID"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Client Secret (optional)"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Enable debug logging"
+msgstr ""
