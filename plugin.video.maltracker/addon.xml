@@ -8,6 +8,7 @@
     </extension>
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
+        <import addon="script.module.requests" version="2.31.0"/>
     </requires>
     <summary lang="es">Consulta y actualiza tu lista de anime de MyAnimeList desde Kodi</summary>
     <description lang="es">Addon de video para consultar, buscar y actualizar tu lista de anime en MyAnimeList usando la API oficial y OAuth2.</description>
