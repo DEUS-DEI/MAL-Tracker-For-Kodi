@@ -13,4 +13,11 @@
     <summary lang="es">Consulta y actualiza tu lista de anime de MyAnimeList desde Kodi</summary>
     <description lang="es">Addon de video para consultar, buscar y actualizar tu lista de anime en MyAnimeList usando la API oficial y OAuth2.</description>
     <platform>all</platform>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="es">Consulta y actualiza tu lista de anime de MyAnimeList desde Kodi</summary>
+        <description lang="es">Addon de video para consultar, buscar y actualizar tu lista de anime en MyAnimeList usando la API oficial y OAuth2.</description>
+    </extension>
+    <extension point="xbmc.addon.settings">
+        <setting id="client_id" type="text" label="Client ID de MyAnimeList" default="" option="" />
+    </extension>
 </addon>

@@ -73,8 +73,8 @@ def show_anime_details(params):
     xbmcplugin.endOfDirectory(HANDLE)
 
 def authenticate():
-    code = auth.get_authorization_code()
-    token = auth.get_access_token(code)
+    code, code_verifier = auth.get_authorization_code()
+    token = auth.get_access_token(code, code_verifier)
     if token:
         xbmcgui.Dialog().notification('MAL Tracker', 'Autenticación exitosa')
     else:
