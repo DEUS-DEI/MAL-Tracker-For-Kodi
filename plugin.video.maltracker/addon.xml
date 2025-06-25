@@ -12,20 +12,11 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">MyAnimeList tracker for Kodi</summary>
-        <summary lang="es_ES">Rastreador de MyAnimeList para Kodi</summary>
         <description lang="en_GB">Track, search and update your MyAnimeList anime collection directly from Kodi using the official MAL API v2 with OAuth2 authentication.</description>
-        <description lang="es_ES">Rastrea, busca y actualiza tu colección de anime de MyAnimeList directamente desde Kodi usando la API oficial MAL v2 con autenticación OAuth2.</description>
-        <disclaimer lang="en_GB">This addon requires a MyAnimeList account and API credentials</disclaimer>
-        <disclaimer lang="es_ES">Este addon requiere una cuenta de MyAnimeList y credenciales de API</disclaimer>
         <platform>all</platform>
         <license>MIT</license>
         <website>https://github.com/user/mal-tracker-kodi</website>
         <source>https://github.com/user/mal-tracker-kodi</source>
         <news>v1.0.0 - Initial release with full MAL API v2 compliance</news>
-    </extension>
-    <extension point="xbmc.addon.settings">
-        <setting id="client_id" type="text" label="30001" default="" />
-        <setting id="client_secret" type="text" label="30002" default="" option="hidden" />
-        <setting id="debug_logging" type="bool" label="30003" default="false" />
     </extension>
 </addon>
