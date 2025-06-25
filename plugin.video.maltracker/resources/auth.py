@@ -5,8 +5,10 @@ import json
 import base64
 import hashlib
 import secrets
+import threading
 import xbmcgui
 from .config import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, AUTH_URL, TOKEN_URL, TOKEN_FILE, USER_AGENT, rate_limit
+from .local_server import start_callback_server
 
 # Paso 1: Obtener el código de autorización
 
@@ -19,30 +21,50 @@ def get_authorization_code():
     if not CLIENT_ID:
         xbmcgui.Dialog().notification('MAL Tracker', 'Client ID no configurado')
         return None, None
+    
     code_verifier, code_challenge = generate_pkce_pair()
     params = {
         'response_type': 'code',
         'client_id': CLIENT_ID,
         'redirect_uri': REDIRECT_URI,
         'code_challenge': code_challenge,
-        'code_challenge_method': 'S256',
-        'state': 'kodi_mal'
+        'code_challenge_method': 'S256'
     }
     url = AUTH_URL + '?' + '&'.join([f"{k}={v}" for k, v in params.items()])
+    
+    # Iniciar servidor en hilo separado
+    server_thread = threading.Thread(target=lambda: setattr(get_authorization_code, 'result', start_callback_server()))
+    server_thread.daemon = True
+    server_thread.start()
+    
+    dialog = xbmcgui.Dialog()
+    dialog.ok('MAL Auth', f'Servidor iniciado en puerto 8080\n\nSe abrirá el navegador.\nAutoriza la aplicación.')
+    
     try:
         webbrowser.open(url)
     except:
         pass
-    dialog = xbmcgui.Dialog()
-    dialog.ok('Autorización requerida', f'Visita: {url}\n\nAutoriza el acceso y copia el código.')
-    code = dialog.input('Código de autorización:')
+    
+    # Esperar resultado del servidor
+    server_thread.join(timeout=60)
+    code = getattr(get_authorization_code, 'result', None)
+    
+    if not code:
+        dialog.notification('MAL Auth', 'Timeout o error del servidor')
+        return None, None
+        
     return code, code_verifier
 
 # Paso 2: Intercambiar el código por un token de acceso
 
 def get_access_token(auth_code, code_verifier):
     if not auth_code or not CLIENT_ID:
+        xbmcgui.Dialog().notification('MAL Tracker', 'Código o Client ID faltante')
         return None
+    
+    # Limpiar el código (remover espacios y saltos de línea)
+    auth_code = auth_code.strip()
+    
     data = {
         'grant_type': 'authorization_code',
         'client_id': CLIENT_ID,
@@ -52,17 +74,31 @@ def get_access_token(auth_code, code_verifier):
     }
     if CLIENT_SECRET:
         data['client_secret'] = CLIENT_SECRET
-    headers = {'User-Agent': USER_AGENT}
+    
+    headers = {
+        'User-Agent': USER_AGENT,
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    
     try:
         rate_limit()
-        response = requests.post(TOKEN_URL, data=data, headers=headers, timeout=10)
-        response.raise_for_status()
+        response = requests.post(TOKEN_URL, data=data, headers=headers, timeout=15)
+        
+        if response.status_code != 200:
+            error_detail = response.text[:300] if response.text else 'Sin detalles'
+            xbmcgui.Dialog().notification('MAL Error', f'Status: {response.status_code}\n{error_detail}')
+            return None
+            
         token_data = response.json()
         with open(TOKEN_FILE, 'w', encoding='utf-8') as f:
             json.dump(token_data, f, ensure_ascii=False, indent=2)
         return token_data.get('access_token')
+        
+    except requests.exceptions.RequestException as e:
+        xbmcgui.Dialog().notification('MAL Tracker', f'Request Error: {str(e)}')
+        return None
     except Exception as e:
-        xbmcgui.Dialog().notification('MAL Tracker', f'Error token: {str(e)}')
+        xbmcgui.Dialog().notification('MAL Tracker', f'Error: {str(e)}')
         return None
 
 # Paso 3: Cargar el token de acceso guardado
