@@ -19,7 +19,7 @@ def generate_pkce_pair():
 
 def get_authorization_code():
     if not CLIENT_ID:
-        xbmcgui.Dialog().notification('MAL Tracker', 'Client ID no configurado')
+        xbmcgui.Dialog().ok('MAL Tracker', 'Client ID no configurado.\n\nVe a Configuración → Addons → MAL Tracker\ny configura tu Client ID de MyAnimeList.\n\nObten las credenciales en:\nhttps://myanimelist.net/apiconfig')
         return None, None
     
     code_verifier, code_challenge = generate_pkce_pair()
