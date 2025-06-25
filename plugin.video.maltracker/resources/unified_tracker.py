@@ -4,17 +4,16 @@ from . import auth, mal_api, anilist_auth, anilist_api
 addon = xbmcaddon.Addon()
 
 def get_active_service():
-    """Determina qué servicio usar basado en la configuración"""
+    """Determina qué servicio usar basado en configuración"""
     mal_configured = bool(addon.getSetting('client_id'))
     anilist_configured = bool(addon.getSetting('anilist_client_id'))
     
     if mal_configured and anilist_configured:
-        # Si ambos están configurados, usar el que tenga token válido
         if auth.load_access_token():
             return 'mal'
         elif anilist_auth.load_access_token():
             return 'anilist'
-        return 'mal'  # Default a MAL
+        return 'mal'
     elif mal_configured:
         return 'mal'
     elif anilist_configured:

@@ -9,4 +9,5 @@
         <setting id="anilist_client_id" type="text" label="30201" default="" />
         <setting id="anilist_client_secret" type="text" label="30202" default="" option="hidden" />
     </category>
+
 </settings>

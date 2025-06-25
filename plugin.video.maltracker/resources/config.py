@@ -27,7 +27,6 @@ def rate_limit():
 # Configuración AniList
 ANILIST_CLIENT_ID = addon.getSetting('anilist_client_id')
 ANILIST_CLIENT_SECRET = addon.getSetting('anilist_client_secret')
-ANILIST_REDIRECT_URI = 'https://anilist.co/api/v2/oauth/pin'
 ANILIST_AUTH_URL = 'https://anilist.co/api/v2/oauth/authorize'
 ANILIST_TOKEN_URL = 'https://anilist.co/api/v2/oauth/token'
 
