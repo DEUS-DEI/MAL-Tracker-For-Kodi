@@ -6,7 +6,7 @@ import time
 addon = xbmcaddon.Addon()
 CLIENT_ID = addon.getSetting('client_id')
 CLIENT_SECRET = addon.getSetting('client_secret') or None
-REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
+REDIRECT_URI = 'http://localhost:8080/callback'
 AUTH_URL = 'https://myanimelist.net/v1/oauth2/authorize'
 TOKEN_URL = 'https://myanimelist.net/v1/oauth2/token'
 API_BASE_URL = 'https://api.myanimelist.net/v2'

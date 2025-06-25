@@ -8,13 +8,13 @@ def get_authorization_code():
     if not ANILIST_CLIENT_ID:
         xbmcgui.Dialog().notification('AniList', 'Client ID no configurado')
         return None
-    url = f"{ANILIST_AUTH_URL}?client_id={ANILIST_CLIENT_ID}&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+    url = f"{ANILIST_AUTH_URL}?client_id={ANILIST_CLIENT_ID}&response_type=code&redirect_uri=http://localhost:8080/callback"
     try:
         webbrowser.open(url)
     except:
         pass
     dialog = xbmcgui.Dialog()
-    dialog.ok('Autorización AniList', f'Visita: {url}\n\nAutoriza y copia el código.')
+    dialog.ok('Autorización AniList', f'Visita: {url}\n\nCopia el código de la URL de callback.')
     return dialog.input('Código de autorización:')
 
 def get_access_token(auth_code):
@@ -24,7 +24,7 @@ def get_access_token(auth_code):
         'grant_type': 'authorization_code',
         'client_id': ANILIST_CLIENT_ID,
         'client_secret': ANILIST_CLIENT_SECRET,
-        'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
+        'redirect_uri': 'http://localhost:8080/callback',
         'code': auth_code
     }
     headers = {'User-Agent': USER_AGENT, 'Content-Type': 'application/json', 'Accept': 'application/json'}
