@@ -29,3 +29,7 @@ msgstr "ID de Cliente de AniList"
 msgctxt "#30202"
 msgid "AniList Client Secret"
 msgstr "Client Secret de AniList"
+
+msgctxt "#30004"
+msgid "Redirect URI"
+msgstr "URI de Redirección"

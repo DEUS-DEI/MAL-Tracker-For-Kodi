@@ -8,6 +8,9 @@
             <setting id="client_secret" type="string" label="30002" default="" option="hidden">
                 <level>0</level>
             </setting>
+            <setting id="redirect_uri" type="string" label="30004" default="http://localhost:8080/callback">
+                <level>1</level>
+            </setting>
             <setting id="debug_logging" type="boolean" label="30003" default="false">
                 <level>0</level>
             </setting>

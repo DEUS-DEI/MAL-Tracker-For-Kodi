@@ -29,3 +29,7 @@ msgstr ""
 msgctxt "#30202"
 msgid "AniList Client Secret"
 msgstr ""
+
+msgctxt "#30004"
+msgid "Redirect URI"
+msgstr ""

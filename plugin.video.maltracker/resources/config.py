@@ -3,10 +3,19 @@ import xbmcvfs
 import os
 import time
 
-addon = xbmcaddon.Addon()
-CLIENT_ID = addon.getSetting('client_id')
-CLIENT_SECRET = addon.getSetting('client_secret') or None
-REDIRECT_URI = 'http://localhost:8080/callback'
+# Asegurar que el addon esté completamente inicializado
+try:
+    addon = xbmcaddon.Addon()
+    CLIENT_ID = addon.getSetting('client_id') or None
+    CLIENT_SECRET = addon.getSetting('client_secret') or None
+except:
+    # Fallback si hay problemas de inicialización
+    import xbmc
+    xbmc.sleep(100)
+    addon = xbmcaddon.Addon()
+    CLIENT_ID = addon.getSetting('client_id') or None
+    CLIENT_SECRET = addon.getSetting('client_secret') or None
+REDIRECT_URI = addon.getSetting('redirect_uri') or 'http://localhost:8080/callback'
 AUTH_URL = 'https://myanimelist.net/v1/oauth2/authorize'
 TOKEN_URL = 'https://myanimelist.net/v1/oauth2/token'
 API_BASE_URL = 'https://api.myanimelist.net/v2'
@@ -25,8 +34,8 @@ def rate_limit():
     last_request_time = time.time()
 
 # Configuración AniList
-ANILIST_CLIENT_ID = addon.getSetting('anilist_client_id')
-ANILIST_CLIENT_SECRET = addon.getSetting('anilist_client_secret')
+ANILIST_CLIENT_ID = addon.getSetting('anilist_client_id') or None
+ANILIST_CLIENT_SECRET = addon.getSetting('anilist_client_secret') or None
 ANILIST_AUTH_URL = 'https://anilist.co/api/v2/oauth/authorize'
 ANILIST_TOKEN_URL = 'https://anilist.co/api/v2/oauth/token'
 
