@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'resources'))
-from resources import auth, mal_api, mal_search
+from resources import auth, mal_api, mal_search, config_importer
 
 ADDON = xbmcaddon.Addon()
 HANDLE = int(sys.argv[1])
@@ -31,6 +31,8 @@ def router(paramstring):
             search_anime()
         elif params.get('action') == 'details':
             show_anime_details(params)
+        elif params.get('action') == 'import_config':
+            config_importer.import_config_from_text()
         else:
             show_main_menu()
     else:
@@ -51,10 +53,18 @@ def show_main_menu():
         li = xbmcgui.ListItem('Reautenticar')
         li.setArt({'icon': ICON, 'fanart': FANART})
         xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=auth', li, False)
+        
+        li = xbmcgui.ListItem('Importar configuración')
+        li.setArt({'icon': ICON, 'fanart': FANART})
+        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=import_config', li, False)
     else:
         li = xbmcgui.ListItem('Autenticar con MyAnimeList')
         li.setArt({'icon': ICON, 'fanart': FANART})
         xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=auth', li, False)
+        
+        li = xbmcgui.ListItem('Importar configuración')
+        li.setArt({'icon': ICON, 'fanart': FANART})
+        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=import_config', li, False)
     xbmcplugin.endOfDirectory(HANDLE)
 
 def search_anime():
