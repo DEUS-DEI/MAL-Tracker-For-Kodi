@@ -24,8 +24,16 @@ def rate_limit():
         time.sleep(1.0 - (current_time - last_request_time))
     last_request_time = time.time()
 
+# Configuración AniList
+ANILIST_CLIENT_ID = addon.getSetting('anilist_client_id')
+ANILIST_CLIENT_SECRET = addon.getSetting('anilist_client_secret')
+ANILIST_REDIRECT_URI = 'https://anilist.co/api/v2/oauth/pin'
+ANILIST_AUTH_URL = 'https://anilist.co/api/v2/oauth/authorize'
+ANILIST_TOKEN_URL = 'https://anilist.co/api/v2/oauth/token'
+
 # Ruta segura para tokens
 TOKEN_PATH = xbmcvfs.translatePath(addon.getAddonInfo('profile'))
 if not xbmcvfs.exists(TOKEN_PATH):
     xbmcvfs.mkdirs(TOKEN_PATH)
 TOKEN_FILE = os.path.join(TOKEN_PATH, 'token.json')
+ANILIST_TOKEN_FILE = os.path.join(TOKEN_PATH, 'anilist_token.json')

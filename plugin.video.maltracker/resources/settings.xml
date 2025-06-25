@@ -5,4 +5,8 @@
         <setting id="client_secret" type="text" label="30002" default="" option="hidden" />
         <setting id="debug_logging" type="bool" label="30003" default="false" />
     </category>
+    <category label="30200">
+        <setting id="anilist_client_id" type="text" label="30201" default="" />
+        <setting id="anilist_client_secret" type="text" label="30202" default="" option="hidden" />
+    </category>
 </settings>
