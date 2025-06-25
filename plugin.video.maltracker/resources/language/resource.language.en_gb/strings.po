@@ -17,3 +17,15 @@ msgstr ""
 msgctxt "#30100"
 msgid "General"
 msgstr ""
+
+msgctxt "#30200"
+msgid "AniList"
+msgstr ""
+
+msgctxt "#30201"
+msgid "AniList Client ID"
+msgstr ""
+
+msgctxt "#30202"
+msgid "AniList Client Secret"
+msgstr ""

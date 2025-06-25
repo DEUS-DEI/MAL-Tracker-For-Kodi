@@ -17,3 +17,15 @@ msgstr "Habilitar logging de depuración"
 msgctxt "#30100"
 msgid "General"
 msgstr "General"
+
+msgctxt "#30200"
+msgid "AniList"
+msgstr "AniList"
+
+msgctxt "#30201"
+msgid "AniList Client ID"
+msgstr "ID de Cliente de AniList"
+
+msgctxt "#30202"
+msgid "AniList Client Secret"
+msgstr "Client Secret de AniList"
