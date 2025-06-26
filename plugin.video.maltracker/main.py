@@ -83,6 +83,8 @@ def router(paramstring):
             backup_system.show_backup_menu()
         elif params.get('action') == 'multimedia':
             show_multimedia_content(params)
+        elif params.get('action') == 'sync_compatibility':
+            show_sync_compatibility()
         else:
             show_main_menu()
     else:
@@ -153,9 +155,20 @@ def show_main_menu():
     # Estado de sincronización
     sync_status = sync_manager.get_sync_status()
     if sync_status['is_authenticated']:
-        sync_title = f"🔄 Sincronizar ({sync_status['unsynced_count']} pendientes)"
+        # Importar sincronización híbrida
+        from resources import hybrid_sync
+        compat_status = hybrid_sync.get_sync_compatibility_status()
+        
+        sync_title = f"🔄 Sincronizar ({sync_status['unsynced_count']} pendientes, {compat_status['sync_percentage']}% compatible)"
         li = xbmcgui.ListItem(sync_title)
         li.setArt({'icon': ICON, 'fanart': FANART})
+        
+        # Menú contextual con información de compatibilidad
+        context_menu = [
+            ('Ver compatibilidad', f'RunPlugin({BASE_URL}?action=sync_compatibility)')
+        ]
+        li.addContextMenuItems(context_menu)
+        
         xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=sync_now', li, False)
     else:
         li = xbmcgui.ListItem('🔒 Autenticar para sincronizar')
@@ -818,26 +831,43 @@ def update_local_anime(params):
     xbmc.executebuiltin('Container.Refresh')
 
 def sync_now():
-    """Sincronizar ahora con MAL"""
+    """Sincronizar ahora con MAL usando sincronización híbrida"""
     if not auth.load_access_token():
         xbmcgui.Dialog().notification(ADDON_NAME, 'Debes autenticarte primero')
         return
     
+    from resources import hybrid_sync
+    
+    # Mostrar información de compatibilidad antes de sincronizar
+    compat_status = hybrid_sync.get_sync_compatibility_status()
+    
+    if compat_status['local_only'] > 0:
+        message = f"Se sincronizarán {compat_status['compatible']} anime.\n"
+        message += f"{compat_status['local_only']} anime con estados locales se preservarán.\n\n¿Continuar?"
+        
+        if not xbmcgui.Dialog().yesno('Sincronización Híbrida', message):
+            return
+    
     # Mostrar progreso
     progress = xbmcgui.DialogProgress()
-    progress.create('Sincronizando', 'Sincronizando con MyAnimeList...')
+    progress.create('Sincronización Híbrida', 'Sincronizando datos compatibles...')
     
-    success = sync_manager.sync_with_mal()
+    success = hybrid_sync.hybrid_sync_with_mal()
     
     progress.close()
     
     if success:
-        xbmcgui.Dialog().notification(ADDON_NAME, 'Sincronización completada')
+        xbmcgui.Dialog().notification(ADDON_NAME, f'Sincronización completada ({compat_status["sync_percentage"]}% compatible)')
     else:
         xbmcgui.Dialog().notification(ADDON_NAME, 'Error en sincronización')
     
     # Refrescar menú
     xbmc.executebuiltin('Container.Refresh')
+
+def show_sync_compatibility():
+    """Mostrar información de compatibilidad de sincronización"""
+    from resources import hybrid_sync
+    hybrid_sync.show_sync_compatibility_info()
 
 def show_ai_recommendations():
     """Mostrar recomendaciones de IA"""
