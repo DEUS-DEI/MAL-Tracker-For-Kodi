@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'resources'))
-from resources import auth, mal_api, mal_search, config_importer, public_api, streaming_integration, local_database, sync_manager
+from resources import auth, mal_api, mal_search, config_importer, public_api, streaming_integration, local_database, sync_manager, advanced_search, notifications, ai_recommendations, multimedia, personalization, gamification, backup_system
 
 ADDON = xbmcaddon.Addon()
 HANDLE = int(sys.argv[1])
@@ -65,17 +65,38 @@ def router(paramstring):
             update_local_anime(params)
         elif params.get('action') == 'list_by_status':
             show_list_by_status(params)
+        elif params.get('action') == 'advanced_search':
+            advanced_search.show_advanced_search_menu()
+        elif params.get('action') == 'notifications':
+            notifications.configure_notifications()
+        elif params.get('action') == 'ai_recommendations':
+            show_ai_recommendations()
+        elif params.get('action') == 'achievements':
+            gamification.show_achievements_menu()
+        elif params.get('action') == 'personalization':
+            personalization.show_personalization_menu()
+        elif params.get('action') == 'backup':
+            backup_system.show_backup_menu()
+        elif params.get('action') == 'multimedia':
+            show_multimedia_content(params)
         else:
             show_main_menu()
     else:
         show_main_menu()
 
 def show_main_menu():
-    # Inicializar base de datos local
+    # Inicializar todos los sistemas
     local_database.init_database()
+    notifications.init_notifications()
+    personalization.init_personalization()
+    gamification.init_gamification()
+    backup_system.init_backup_system()
     
-    # Auto-sincronización si está autenticado
+    # Auto-sincronización, notificaciones y gamificación
     sync_manager.auto_sync_if_authenticated()
+    notifications.check_for_notifications()
+    gamification.check_achievements()
+    gamification.update_activity_streak()
     
     xbmcplugin.setPluginCategory(HANDLE, 'MAL Tracker')
     xbmcplugin.setContent(HANDLE, 'files')
@@ -93,8 +114,12 @@ def show_main_menu():
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=local_stats', li, False)
     
-    # Opciones públicas (sin autenticación)
-    li = xbmcgui.ListItem('Buscar anime (público)')
+    # Búsqueda mejorada
+    li = xbmcgui.ListItem('🔍 Búsqueda avanzada')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=advanced_search', li, True)
+    
+    li = xbmcgui.ListItem('Buscar anime (básico)')
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=search_public', li, True)
     
@@ -132,6 +157,37 @@ def show_main_menu():
         li = xbmcgui.ListItem('🔒 Autenticar para sincronizar')
         li.setArt({'icon': ICON, 'fanart': FANART})
         xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=auth', li, False)
+    
+    # Recomendaciones IA
+    li = xbmcgui.ListItem('🤖 Recomendaciones IA')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=ai_recommendations', li, True)
+    
+    # Gamificación
+    game_status = gamification.get_gamification_status()
+    game_title = f"🎮 Logros (Nivel {game_status['level']}, {game_status['achievements_unlocked']}/{game_status['total_achievements']})"
+    li = xbmcgui.ListItem(game_title)
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=achievements', li, False)
+    
+    # Personalización
+    person_status = personalization.get_personalization_status()
+    person_title = f"🎨 Personalizar ({person_status['theme']} - {person_status['layout']})"
+    li = xbmcgui.ListItem(person_title)
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=personalization', li, False)
+    
+    # Backup
+    li = xbmcgui.ListItem('💾 Backup y Exportación')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=backup', li, False)
+    
+    # Notificaciones
+    notif_status = notifications.get_notifications_status()
+    notif_title = f"🔔 Notificaciones ({notif_status['active_count']}/3 activas)"
+    li = xbmcgui.ListItem(notif_title)
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=notifications', li, False)
     
     if is_authenticated():
         li = xbmcgui.ListItem('Ver mi lista de anime')
@@ -768,6 +824,34 @@ def sync_now():
     
     # Refrescar menú
     xbmc.executebuiltin('Container.Refresh')
+
+def show_ai_recommendations():
+    """Mostrar recomendaciones de IA"""
+    xbmcplugin.setPluginCategory(HANDLE, 'Recomendaciones IA')
+    xbmcplugin.setContent(HANDLE, 'files')
+    
+    options = [
+        '🎯 Recomendaciones personalizadas',
+        '🔥 Trending ahora',
+        '🔍 Anime similar a...',
+        '🎨 Por género favorito'
+    ]
+    
+    for i, option in enumerate(options):
+        li = xbmcgui.ListItem(option)
+        li.setArt({'icon': ICON, 'fanart': FANART})
+        url = f"{BASE_URL}?action=ai_rec_type&type={i}"
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, True)
+    
+    xbmcplugin.endOfDirectory(HANDLE)
+
+def show_multimedia_content(params):
+    """Mostrar contenido multimedia"""
+    anime_id = params.get('anime_id')
+    anime_title = params.get('title', 'Anime')
+    
+    if anime_id:
+        multimedia.show_multimedia_menu(anime_id, anime_title)
 
 if __name__ == '__main__':
     router(sys.argv[2][1:])
