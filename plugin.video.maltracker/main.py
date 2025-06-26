@@ -65,6 +65,10 @@ def router(paramstring):
             update_local_anime(params)
         elif params.get('action') == 'list_by_status':
             show_list_by_status(params)
+        elif params.get('action') == 'smart_filter':
+            show_smart_filter(params)
+        elif params.get('action') == 'list_by_genre':
+            show_list_by_genre(params)
         elif params.get('action') == 'advanced_search':
             advanced_search.show_advanced_search_menu()
         elif params.get('action') == 'notifications':
@@ -649,26 +653,36 @@ def watch_anime(params):
     streaming_integration.show_streaming_options(anime_title)
 
 def show_my_list():
-    """Mostrar lista local de anime"""
-    xbmcplugin.setPluginCategory(HANDLE, 'Mi Lista Local')
+    """Mostrar lista local de anime con opciones avanzadas"""
+    xbmcplugin.setPluginCategory(HANDLE, 'Mi Lista Avanzada')
     xbmcplugin.setContent(HANDLE, 'files')
     
-    # Opciones por estado
-    statuses = [
-        ('Viendo', 'watching'),
-        ('Completado', 'completed'),
-        ('En pausa', 'on_hold'),
-        ('Abandonado', 'dropped'),
-        ('Planeo ver', 'plan_to_watch'),
-        ('Toda la lista', 'all')
-    ]
+    # Importar listas avanzadas
+    from resources import advanced_lists
     
-    for status_name, status_code in statuses:
-        count = len(local_database.get_local_anime_list(status_code if status_code != 'all' else None))
-        li = xbmcgui.ListItem(f'{status_name} ({count})')
-        li.setArt({'icon': ICON, 'fanart': FANART})
-        url = f"{BASE_URL}?action=list_by_status&status={status_code}"
-        xbmcplugin.addDirectoryItem(HANDLE, url, li, True)
+    # Obtener menú avanzado
+    menu_items = advanced_lists.get_advanced_list_menu()
+    
+    for item in menu_items:
+        if item.get('separator'):
+            # Separador visual
+            li = xbmcgui.ListItem(item['title'])
+            li.setArt({'icon': ICON, 'fanart': FANART})
+            xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=separator', li, False)
+        else:
+            li = xbmcgui.ListItem(item['title'])
+            li.setArt({'icon': ICON, 'fanart': FANART})
+            
+            if item['action'] == 'list_by_status':
+                url = f"{BASE_URL}?action=list_by_status&status={item['status']}"
+            elif item['action'] == 'smart_filter':
+                url = f"{BASE_URL}?action=smart_filter&filter={item['filter']}"
+            elif item['action'] == 'list_by_genre':
+                url = f"{BASE_URL}?action=list_by_genre&genre={item['genre']}"
+            else:
+                url = f"{BASE_URL}?action=list_by_status&status=all"
+            
+            xbmcplugin.addDirectoryItem(HANDLE, url, li, True)
     
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -852,6 +866,82 @@ def show_multimedia_content(params):
     
     if anime_id:
         multimedia.show_multimedia_menu(anime_id, anime_title)
+
+def show_smart_filter(params):
+    """Mostrar anime por filtro inteligente"""
+    filter_id = params.get('filter')
+    if not filter_id:
+        return
+    
+    from resources import advanced_lists
+    
+    filter_info = advanced_lists.SMART_FILTERS.get(filter_id, {})
+    filter_name = filter_info.get('name', 'Filtro')
+    
+    xbmcplugin.setPluginCategory(HANDLE, f'Filtro: {filter_name}')
+    xbmcplugin.setContent(HANDLE, 'tvshows')
+    
+    anime_list = advanced_lists.get_anime_by_smart_filter(filter_id)
+    
+    for anime in anime_list:
+        title = anime['title']
+        progress = f"{anime['episodes_watched']}/{anime['total_episodes']}"
+        sync_icon = '✓' if anime['synced'] else '⏳'
+        
+        li = xbmcgui.ListItem(f"{sync_icon} {title} ({progress})")
+        li.setArt({'thumb': anime['image_url'], 'poster': anime['image_url'], 'fanart': FANART})
+        li.setInfo('video', {
+            'title': title,
+            'plot': f"Estado: {anime['status']}\nProgreso: {progress}\nPuntuación: {anime['score']}/10",
+            'rating': float(anime['score']) if anime['score'] else 0,
+            'year': anime['year'],
+            'mediatype': 'tvshow'
+        })
+        
+        url = f"{BASE_URL}?action=update_local&anime_id={anime['mal_id']}"
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, False)
+    
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_VIDEO_RATING)
+    xbmcplugin.endOfDirectory(HANDLE)
+
+def show_list_by_genre(params):
+    """Mostrar anime por género"""
+    genre_id = params.get('genre')
+    if not genre_id:
+        return
+    
+    from resources import advanced_lists
+    
+    genre_info = advanced_lists.GENRE_LISTS.get(genre_id, {})
+    genre_name = genre_info.get('name', 'Género')
+    
+    xbmcplugin.setPluginCategory(HANDLE, f'Género: {genre_name}')
+    xbmcplugin.setContent(HANDLE, 'tvshows')
+    
+    anime_list = advanced_lists.get_anime_by_genre(genre_id)
+    
+    for anime in anime_list:
+        title = anime['title']
+        progress = f"{anime['episodes_watched']}/{anime['total_episodes']}"
+        sync_icon = '✓' if anime['synced'] else '⏳'
+        
+        li = xbmcgui.ListItem(f"{sync_icon} {title} ({progress})")
+        li.setArt({'thumb': anime['image_url'], 'poster': anime['image_url'], 'fanart': FANART})
+        li.setInfo('video', {
+            'title': title,
+            'plot': f"Estado: {anime['status']}\nProgreso: {progress}\nPuntuación: {anime['score']}/10\nGéneros: {', '.join(anime['genres'][:3])}",
+            'rating': float(anime['score']) if anime['score'] else 0,
+            'year': anime['year'],
+            'mediatype': 'tvshow'
+        })
+        
+        url = f"{BASE_URL}?action=update_local&anime_id={anime['mal_id']}"
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, False)
+    
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_VIDEO_RATING)
+    xbmcplugin.endOfDirectory(HANDLE)
 
 if __name__ == '__main__':
     router(sys.argv[2][1:])
