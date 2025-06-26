@@ -58,8 +58,11 @@ def get_authorization_code():
 # Paso 2: Intercambiar el código por un token de acceso
 
 def get_access_token(auth_code, code_verifier):
-    if not auth_code or not CLIENT_ID:
-        xbmcgui.Dialog().notification('MAL Tracker', 'Código o Client ID faltante')
+    if not auth_code:
+        xbmcgui.Dialog().notification('MAL Tracker', 'Código de autorización faltante')
+        return None
+    if not CLIENT_ID:
+        xbmcgui.Dialog().notification('MAL Tracker', 'Client ID no configurado')
         return None
     
     # Limpiar el código (remover espacios y saltos de línea)
@@ -81,17 +84,36 @@ def get_access_token(auth_code, code_verifier):
     }
     
     try:
+        import xbmc
+        xbmc.log(f'MAL Auth: Iniciando intercambio de token con code: {auth_code[:10]}...', xbmc.LOGINFO)
+        
         rate_limit()
         response = requests.post(TOKEN_URL, data=data, headers=headers, timeout=15)
         
+        xbmc.log(f'MAL Auth: Response status: {response.status_code}', xbmc.LOGINFO)
+        
         if response.status_code != 200:
             error_detail = response.text[:300] if response.text else 'Sin detalles'
+            xbmc.log(f'MAL Auth Error: {response.status_code} - {error_detail}', xbmc.LOGERROR)
             xbmcgui.Dialog().notification('MAL Error', f'Status: {response.status_code}\n{error_detail}')
             return None
             
         token_data = response.json()
+        
+        # Validar estructura del token (estilo MALSync)
+        if 'access_token' not in token_data:
+            xbmc.log('MAL Auth Error: No access_token in response', xbmc.LOGERROR)
+            xbmcgui.Dialog().notification('MAL Error', 'Token inválido recibido')
+            return None
+            
+        # Agregar timestamp para expiración
+        import time
+        token_data['obtained_at'] = int(time.time())
+        
         with open(TOKEN_FILE, 'w', encoding='utf-8') as f:
             json.dump(token_data, f, ensure_ascii=False, indent=2)
+            
+        xbmc.log('MAL Auth: Token guardado exitosamente', xbmc.LOGINFO)
         return token_data.get('access_token')
         
     except requests.exceptions.RequestException as e:
@@ -104,20 +126,52 @@ def get_access_token(auth_code, code_verifier):
 # Paso 3: Cargar el token de acceso guardado
 
 def load_access_token():
+    import xbmc
     try:
         with open(TOKEN_FILE, 'r', encoding='utf-8') as f:
             token_data = json.load(f)
-        return token_data.get('access_token')
-    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            
+        access_token = token_data.get('access_token')
+        if not access_token:
+            return None
+            
+        # Verificar expiración (estilo MALSync)
+        expires_in = token_data.get('expires_in', 3600)
+        obtained_at = token_data.get('obtained_at', 0)
+        
+        if obtained_at > 0:
+            import time
+            current_time = int(time.time())
+            token_age = current_time - obtained_at
+            
+            # Si el token expira en menos de 5 minutos, intentar refresh
+            if token_age > (expires_in - 300):
+                xbmc.log('MAL Auth: Token near expiration, attempting refresh', xbmc.LOGINFO)
+                refreshed_token = refresh_access_token()
+                if refreshed_token:
+                    return refreshed_token
+                else:
+                    xbmc.log('MAL Auth: Token refresh failed, using current token', xbmc.LOGWARNING)
+                    
+        return access_token
+        
+    except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+        xbmc.log(f'MAL Auth: Error loading token - {str(e)}', xbmc.LOGDEBUG)
         return None
 
 def refresh_access_token():
+    import xbmc
     try:
         with open(TOKEN_FILE, 'r', encoding='utf-8') as f:
             token_data = json.load(f)
+        
         refresh_token = token_data.get('refresh_token')
         if not refresh_token:
+            xbmc.log('MAL Auth: No refresh token available', xbmc.LOGWARNING)
             return None
+            
+        xbmc.log('MAL Auth: Refreshing access token', xbmc.LOGINFO)
+        
         data = {
             'grant_type': 'refresh_token',
             'refresh_token': refresh_token,
@@ -125,13 +179,36 @@ def refresh_access_token():
         }
         if CLIENT_SECRET:
             data['client_secret'] = CLIENT_SECRET
+            
         headers = {'User-Agent': USER_AGENT}
         rate_limit()
         response = requests.post(TOKEN_URL, data=data, headers=headers, timeout=10)
-        response.raise_for_status()
+        
+        if response.status_code != 200:
+            xbmc.log(f'MAL Auth: Refresh failed with status {response.status_code}', xbmc.LOGERROR)
+            return None
+            
         new_token_data = response.json()
+        
+        # Validar nuevo token
+        if 'access_token' not in new_token_data:
+            xbmc.log('MAL Auth: Invalid refresh response', xbmc.LOGERROR)
+            return None
+            
+        # Preservar refresh_token si no viene nuevo
+        if 'refresh_token' not in new_token_data:
+            new_token_data['refresh_token'] = refresh_token
+            
+        # Agregar timestamp
+        import time
+        new_token_data['obtained_at'] = int(time.time())
+        
         with open(TOKEN_FILE, 'w', encoding='utf-8') as f:
             json.dump(new_token_data, f, ensure_ascii=False, indent=2)
+            
+        xbmc.log('MAL Auth: Token refreshed successfully', xbmc.LOGINFO)
         return new_token_data.get('access_token')
-    except Exception:
+        
+    except Exception as e:
+        xbmc.log(f'MAL Auth: Refresh error - {str(e)}', xbmc.LOGERROR)
         return None
