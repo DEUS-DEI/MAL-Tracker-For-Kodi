@@ -168,6 +168,7 @@ def get_genre_count(genre):
         conn = sqlite3.connect(local_database.DB_PATH)
         cursor = conn.cursor()
         
+        # CORREGIDO: Usar parámetros seguros
         cursor.execute('''
             SELECT COUNT(*) FROM anime_list 
             WHERE genres LIKE ?

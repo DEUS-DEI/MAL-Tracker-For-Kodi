@@ -85,6 +85,10 @@ def router(paramstring):
             show_multimedia_content(params)
         elif params.get('action') == 'sync_compatibility':
             show_sync_compatibility()
+        elif params.get('action') == 'security':
+            show_security_menu()
+        elif params.get('action') == 'security_report':
+            show_comprehensive_security_report()
         else:
             show_main_menu()
     else:
@@ -198,6 +202,11 @@ def show_main_menu():
     li = xbmcgui.ListItem('💾 Backup y Exportación')
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=backup', li, False)
+    
+    # Seguridad
+    li = xbmcgui.ListItem('🔒 Seguridad y Auditoría')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=security', li, False)
     
     # Notificaciones
     notif_status = notifications.get_notifications_status()
@@ -868,6 +877,89 @@ def show_sync_compatibility():
     """Mostrar información de compatibilidad de sincronización"""
     from resources import hybrid_sync
     hybrid_sync.show_sync_compatibility_info()
+
+def show_comprehensive_security_report():
+    """Mostrar reporte completo de seguridad"""
+    try:
+        report = "🔒 REPORTE COMPLETO DE SEGURIDAD\n\n"
+        
+        # Estado de seguridad estándar
+        from resources import security_audit
+        vulnerabilities = security_audit.SecurityAudit.run_security_scan()
+        
+        critical = len([v for v in vulnerabilities if v['severity'] == 'critical'])
+        high = len([v for v in vulnerabilities if v['severity'] == 'high'])
+        
+        report += f"🚨 VULNERABILIDADES ESTÁNDAR:\n"
+        report += f"• Críticas: {critical}\n"
+        report += f"• Altas: {high}\n\n"
+        
+        # Estado MFA
+        from resources.config import TOKEN_PATH
+        mfa_active = os.path.exists(os.path.join(TOKEN_PATH, '.mfa_secret'))
+        report += f"🔐 AUTENTICACIÓN MFA: {'Activa' if mfa_active else 'Inactiva'}\n\n"
+        
+        # Estado de seguridad militar
+        military_active = os.path.exists(os.path.join(TOKEN_PATH, 'permissions.json'))
+        report += f"🎯 SEGURIDAD MILITAR: {'Activa' if military_active else 'Inactiva'}\n\n"
+        
+        # Estado IDS
+        ids_active = os.path.exists(os.path.join(TOKEN_PATH, '.file_baseline'))
+        report += f"🚨 DETECCIÓN INTRUSIONES: {'Activa' if ids_active else 'Inactiva'}\n\n"
+        
+        # Modo de emergencia
+        emergency_active = os.path.exists(os.path.join(TOKEN_PATH, 'SECURITY_LOCKDOWN'))
+        if emergency_active:
+            report += f"🚨 MODO DE EMERGENCIA: ACTIVO\n\n"
+        
+        # Nivel de seguridad general
+        security_score = 0
+        if critical == 0: security_score += 25
+        if high == 0: security_score += 25
+        if mfa_active: security_score += 25
+        if military_active: security_score += 25
+        
+        report += f"📈 NIVEL DE SEGURIDAD: {security_score}/100\n\n"
+        
+        if security_score >= 75:
+            report += "✅ SEGURIDAD EXCELENTE"
+        elif security_score >= 50:
+            report += "⚠️ SEGURIDAD BUENA"
+        else:
+            report += "🚨 SEGURIDAD INSUFICIENTE"
+        
+        xbmcgui.Dialog().textviewer('Reporte de Seguridad Completo', report)
+        
+    except Exception as e:
+        xbmc.log(f'Security Report: Error - {str(e)}', xbmc.LOGERROR)
+        xbmcgui.Dialog().notification('Seguridad', f'Error: {str(e)}')
+
+def show_security_menu():
+    """Mostrar menú de seguridad militar"""
+    options = [
+        '🔒 Seguridad Estándar',
+        '🎯 Seguridad Militar',
+        '🔐 Autenticación MFA',
+        '🚨 Detección de Intrusiones',
+        '📈 Reporte de Seguridad'
+    ]
+    
+    selected = xbmcgui.Dialog().select('🔒 Centro de Seguridad:', options)
+    
+    if selected == 0:
+        from resources import security_audit
+        security_audit.show_security_menu()
+    elif selected == 1:
+        from resources import military_security
+        military_security.show_military_security_menu()
+    elif selected == 2:
+        from resources import mfa_system
+        mfa_system.show_mfa_menu()
+    elif selected == 3:
+        from resources import intrusion_detection
+        intrusion_detection.show_ids_menu()
+    elif selected == 4:
+        show_comprehensive_security_report()
 
 def show_ai_recommendations():
     """Mostrar recomendaciones de IA"""
