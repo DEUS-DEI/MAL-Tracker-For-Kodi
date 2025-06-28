@@ -92,6 +92,9 @@ def router(paramstring):
         elif params.get('action') == 'bulletproof':
             from resources.bulletproof_menu import show_bulletproof_menu
             show_bulletproof_menu()
+        elif params.get('action') == 'complete_apis':
+            from resources.complete_apis_menu import show_complete_apis_menu
+            show_complete_apis_menu()
         else:
             show_main_menu()
     else:
@@ -215,6 +218,11 @@ def show_main_menu():
     li = xbmcgui.ListItem('🛡️ Sistema Bulletproof')
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=bulletproof', li, False)
+    
+    # APIs Completas
+    li = xbmcgui.ListItem('📡 APIs Completas (24/24)')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=complete_apis', li, False)
     
     # Notificaciones
     notif_status = notifications.get_notifications_status()
