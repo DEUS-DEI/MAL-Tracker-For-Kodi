@@ -89,6 +89,9 @@ def router(paramstring):
             show_security_menu()
         elif params.get('action') == 'security_report':
             show_comprehensive_security_report()
+        elif params.get('action') == 'bulletproof':
+            from resources.bulletproof_menu import show_bulletproof_menu
+            show_bulletproof_menu()
         else:
             show_main_menu()
     else:
@@ -207,6 +210,11 @@ def show_main_menu():
     li = xbmcgui.ListItem('🔒 Seguridad y Auditoría')
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=security', li, False)
+    
+    # Sistema Bulletproof
+    li = xbmcgui.ListItem('🛡️ Sistema Bulletproof')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=bulletproof', li, False)
     
     # Notificaciones
     notif_status = notifications.get_notifications_status()
