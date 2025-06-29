@@ -84,17 +84,15 @@ def init_database():
         xbmc.log(f'MAL Tracker: Database init error - {str(e)}', xbmc.LOGERROR)
         return False
 
-@safe_execute(max_retries=3, fallback=False)
 def add_anime_to_list(anime_data, status='plan_to_watch'):
-    """Agregar anime a lista local - BULLETPROOF"""
-    from .bulletproof_system import bulletproof
-    
-    # Validación de entrada
-    if not anime_data or not isinstance(anime_data, dict):
-        raise ValueError("Invalid anime_data")
-    
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    """Agregar anime a lista local"""
+    try:
+        # Validación de entrada
+        if not anime_data or not isinstance(anime_data, dict):
+            raise ValueError("Invalid anime_data")
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
         
         cursor.execute('''
             INSERT OR REPLACE INTO anime_list 
