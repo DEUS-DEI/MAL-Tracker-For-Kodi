@@ -27,6 +27,10 @@ def router(paramstring):
             update_anime(params)
         elif params.get('action') == 'auth':
             authenticate()
+        elif params.get('action') == 'manual_auth':
+            manual_authenticate()
+        elif params.get('action') == 'auth_help_manual':
+            show_manual_auth_help_menu()
         elif params.get('action') == 'search':
             search_anime()
         elif params.get('action') == 'details':
@@ -317,21 +321,50 @@ def show_anime_details(params):
     xbmcplugin.endOfDirectory(HANDLE)
 
 def authenticate():
+    # Mostrar opciones de autenticación
+    options = ['🌐 Autenticación automática (servidor local)', '✋ Autenticación manual (copiar código)', '❓ Ayuda']
+    selected = xbmcgui.Dialog().select('Método de autenticación:', options)
+    
+    if selected == 0:  # Automática
+        try:
+            code, code_verifier = auth.get_authorization_code()
+            if not code:
+                xbmcgui.Dialog().notification(ADDON_NAME, 'Autenticación cancelada')
+                return
+            token = auth.get_access_token(code, code_verifier)
+            if token:
+                xbmc.log(f'{ADDON_NAME}: Autenticación exitosa', xbmc.LOGINFO)
+                xbmcgui.Dialog().notification(ADDON_NAME, 'Autenticación exitosa')
+            else:
+                xbmc.log(f'{ADDON_NAME}: Error en autenticación', xbmc.LOGERROR)
+                xbmcgui.Dialog().notification(ADDON_NAME, 'Error en autenticación')
+        except Exception as e:
+            xbmc.log(f'{ADDON_NAME}: Error autenticación - {str(e)}', xbmc.LOGERROR)
+            xbmcgui.Dialog().notification(ADDON_NAME, f'Error: {str(e)}')
+    
+    elif selected == 1:  # Manual
+        manual_authenticate()
+    
+    elif selected == 2:  # Ayuda
+        show_manual_auth_help_menu()
+
+def manual_authenticate():
+    from resources import manual_auth
     try:
-        code, code_verifier = auth.get_authorization_code()
-        if not code:
-            xbmcgui.Dialog().notification(ADDON_NAME, 'Autenticación cancelada')
-            return
-        token = auth.get_access_token(code, code_verifier)
+        token = manual_auth.manual_oauth_flow()
         if token:
-            xbmc.log(f'{ADDON_NAME}: Autenticación exitosa', xbmc.LOGINFO)
+            xbmc.log(f'{ADDON_NAME}: Autenticación manual exitosa', xbmc.LOGINFO)
             xbmcgui.Dialog().notification(ADDON_NAME, 'Autenticación exitosa')
         else:
-            xbmc.log(f'{ADDON_NAME}: Error en autenticación', xbmc.LOGERROR)
-            xbmcgui.Dialog().notification(ADDON_NAME, 'Error en autenticación')
+            xbmc.log(f'{ADDON_NAME}: Error en autenticación manual', xbmc.LOGERROR)
+            xbmcgui.Dialog().notification(ADDON_NAME, 'Autenticación cancelada o falló')
     except Exception as e:
-        xbmc.log(f'{ADDON_NAME}: Error autenticación - {str(e)}', xbmc.LOGERROR)
+        xbmc.log(f'{ADDON_NAME}: Error autenticación manual - {str(e)}', xbmc.LOGERROR)
         xbmcgui.Dialog().notification(ADDON_NAME, f'Error: {str(e)}')
+
+def show_manual_auth_help_menu():
+    from resources import manual_auth
+    manual_auth.show_manual_auth_help()
 
 def list_anime():
     if not is_authenticated():
