@@ -6,6 +6,7 @@ import base64
 import hashlib
 import secrets
 import threading
+import urllib.parse
 import xbmcgui
 from .config import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, AUTH_URL, TOKEN_URL, TOKEN_FILE, USER_AGENT, rate_limit
 from .local_server import start_callback_server
@@ -13,114 +14,227 @@ from .local_server import start_callback_server
 # Paso 1: Obtener el código de autorización
 
 def generate_pkce_pair():
-    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b'=').decode('utf-8')
-    code_challenge = base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode('utf-8')).digest()).rstrip(b'=').decode('utf-8')
+    # Generar code_verifier de 43-128 caracteres (MAL requirement)
+    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8').rstrip('=')
+    # Generar code_challenge usando SHA256
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    ).decode('utf-8').rstrip('=')
     return code_verifier, code_challenge
 
 def get_authorization_code():
-    if not CLIENT_ID:
-        xbmcgui.Dialog().ok('MAL Tracker', 'Client ID no configurado.\n\nVe a Configuración → Addons → MAL Tracker\ny configura tu Client ID de MyAnimeList.\n\nObten las credenciales en:\nhttps://myanimelist.net/apiconfig')
+    import xbmc
+    
+    # Validar CLIENT_ID
+    if not CLIENT_ID or CLIENT_ID.strip() == '':
+        xbmcgui.Dialog().ok('MAL Tracker', 
+            'Client ID no configurado o vacío.\n\n'
+            'Ve a Configuración → Addons → MAL Tracker\n'
+            'y configura tu Client ID de MyAnimeList.\n\n'
+            'Obtén las credenciales en:\n'
+            'https://myanimelist.net/apiconfig')
         return None, None
     
+    xbmc.log(f'MAL Auth: Starting OAuth with Client ID: {CLIENT_ID[:10]}...', xbmc.LOGINFO)
+    
     code_verifier, code_challenge = generate_pkce_pair()
+    
+    # Construir URL de autorización
+    import urllib.parse
     params = {
         'response_type': 'code',
-        'client_id': CLIENT_ID,
+        'client_id': CLIENT_ID.strip(),
         'redirect_uri': REDIRECT_URI,
         'code_challenge': code_challenge,
-        'code_challenge_method': 'S256'
+        'code_challenge_method': 'S256',
+        'state': secrets.token_urlsafe(16)  # Agregar state para seguridad
     }
-    url = AUTH_URL + '?' + '&'.join([f"{k}={v}" for k, v in params.items()])
     
-    # Iniciar servidor en hilo separado
-    server_thread = threading.Thread(target=lambda: setattr(get_authorization_code, 'result', start_callback_server()))
+    url = AUTH_URL + '?' + urllib.parse.urlencode(params)
+    xbmc.log(f'MAL Auth: Authorization URL generated', xbmc.LOGDEBUG)
+    
+    # Mostrar instrucciones al usuario
+    dialog = xbmcgui.Dialog()
+    if not dialog.yesno('MAL Autenticación', 
+                       'Se iniciará el servidor local en puerto 8080\n'
+                       'y se abrirá tu navegador.\n\n'
+                       '¿Continuar con la autenticación?'):
+        return None, None
+    
+    # Iniciar servidor en hilo separado con mejor manejo
+    server_result = {'code': None, 'error': None}
+    
+    def server_worker():
+        try:
+            result = start_callback_server()
+            server_result['code'] = result
+        except Exception as e:
+            server_result['error'] = str(e)
+            xbmc.log(f'MAL Auth: Server thread error - {str(e)}', xbmc.LOGERROR)
+    
+    server_thread = threading.Thread(target=server_worker)
     server_thread.daemon = True
     server_thread.start()
     
-    dialog = xbmcgui.Dialog()
-    dialog.ok('MAL Auth', f'Servidor iniciado en puerto 8080\n\nSe abrirá el navegador.\nAutoriza la aplicación.')
+    # Esperar un momento para que el servidor se inicie
+    import time
+    time.sleep(1)
     
+    # Abrir navegador
     try:
         webbrowser.open(url)
-    except:
-        pass
+        xbmc.log('MAL Auth: Browser opened successfully', xbmc.LOGINFO)
+    except Exception as e:
+        xbmc.log(f'MAL Auth: Failed to open browser - {str(e)}', xbmc.LOGWARNING)
+        dialog.ok('MAL Auth', f'No se pudo abrir el navegador automáticamente.\n\nVe manualmente a:\n{url}')
     
-    # Esperar resultado del servidor
-    server_thread.join(timeout=60)
-    code = getattr(get_authorization_code, 'result', None)
+    # Mostrar progreso mientras esperamos
+    progress = xbmcgui.DialogProgress()
+    progress.create('MAL Autenticación', 'Esperando autorización...')
     
-    if not code:
-        dialog.notification('MAL Auth', 'Timeout o error del servidor')
+    # Esperar resultado con timeout de 2 minutos
+    timeout = 120
+    for i in range(timeout):
+        if progress.iscanceled():
+            dialog.notification('MAL Auth', 'Autenticación cancelada')
+            return None, None
+            
+        if server_result['code'] or server_result['error']:
+            break
+            
+        progress.update(int((i / timeout) * 100), f'Esperando autorización... ({timeout - i}s)')
+        time.sleep(1)
+    
+    progress.close()
+    
+    # Verificar resultado
+    if server_result['error']:
+        dialog.notification('MAL Auth', f'Error del servidor: {server_result["error"]}')
         return None, None
         
+    code = server_result['code']
+    if not code:
+        dialog.notification('MAL Auth', 'Timeout - No se recibió código de autorización')
+        return None, None
+    
+    xbmc.log('MAL Auth: Authorization code received successfully', xbmc.LOGINFO)
     return code, code_verifier
 
 # Paso 2: Intercambiar el código por un token de acceso
 
 def get_access_token(auth_code, code_verifier):
-    if not auth_code:
-        xbmcgui.Dialog().notification('MAL Tracker', 'Código de autorización faltante')
+    import xbmc
+    
+    # Validaciones mejoradas
+    if not auth_code or auth_code.strip() == '':
+        xbmcgui.Dialog().notification('MAL Tracker', 'Código de autorización faltante o vacío')
         return None
-    if not CLIENT_ID:
+        
+    if not CLIENT_ID or CLIENT_ID.strip() == '':
         xbmcgui.Dialog().notification('MAL Tracker', 'Client ID no configurado')
         return None
     
-    # Limpiar el código (remover espacios y saltos de línea)
+    if not code_verifier:
+        xbmcgui.Dialog().notification('MAL Tracker', 'Code verifier faltante')
+        return None
+    
+    # Limpiar el código
     auth_code = auth_code.strip()
     
+    xbmc.log(f'MAL Auth: Iniciando intercambio de token con code: {auth_code[:10]}...', xbmc.LOGINFO)
+    
+    # Preparar datos para el intercambio
     data = {
         'grant_type': 'authorization_code',
-        'client_id': CLIENT_ID,
+        'client_id': CLIENT_ID.strip(),
         'code': auth_code,
         'redirect_uri': REDIRECT_URI,
         'code_verifier': code_verifier
     }
-    if CLIENT_SECRET:
-        data['client_secret'] = CLIENT_SECRET
+    
+    # CLIENT_SECRET es opcional para MAL
+    if CLIENT_SECRET and CLIENT_SECRET.strip():
+        data['client_secret'] = CLIENT_SECRET.strip()
     
     headers = {
         'User-Agent': USER_AGENT,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
     }
     
     try:
-        import xbmc
-        xbmc.log(f'MAL Auth: Iniciando intercambio de token con code: {auth_code[:10]}...', xbmc.LOGINFO)
-        
         rate_limit()
-        response = requests.post(TOKEN_URL, data=data, headers=headers, timeout=15)
+        response = requests.post(TOKEN_URL, data=data, headers=headers, timeout=30)
         
         xbmc.log(f'MAL Auth: Response status: {response.status_code}', xbmc.LOGINFO)
+        xbmc.log(f'MAL Auth: Response headers: {dict(response.headers)}', xbmc.LOGDEBUG)
         
+        # Manejo mejorado de errores
         if response.status_code != 200:
-            error_detail = response.text[:300] if response.text else 'Sin detalles'
-            xbmc.log(f'MAL Auth Error: {response.status_code} - {error_detail}', xbmc.LOGERROR)
-            xbmcgui.Dialog().notification('MAL Error', f'Status: {response.status_code}\n{error_detail}')
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('error', 'Unknown error')
+                error_desc = error_data.get('error_description', '')
+                full_error = f'{error_msg}: {error_desc}' if error_desc else error_msg
+            except:
+                full_error = response.text[:200] if response.text else 'Sin detalles de error'
+            
+            xbmc.log(f'MAL Auth Error: {response.status_code} - {full_error}', xbmc.LOGERROR)
+            
+            # Mostrar errores específicos al usuario
+            if response.status_code == 400:
+                xbmcgui.Dialog().ok('MAL Error', f'Error de solicitud (400):\n{full_error}\n\nVerifica tu Client ID y configuración.')
+            elif response.status_code == 401:
+                xbmcgui.Dialog().ok('MAL Error', f'No autorizado (401):\n{full_error}\n\nEl código de autorización puede haber expirado.')
+            else:
+                xbmcgui.Dialog().ok('MAL Error', f'Error {response.status_code}:\n{full_error}')
+            
             return None
             
-        token_data = response.json()
+        # Parsear respuesta JSON
+        try:
+            token_data = response.json()
+        except json.JSONDecodeError as e:
+            xbmc.log(f'MAL Auth Error: Invalid JSON response - {str(e)}', xbmc.LOGERROR)
+            xbmcgui.Dialog().notification('MAL Error', 'Respuesta inválida del servidor')
+            return None
         
-        # Validar estructura del token (estilo MALSync)
+        # Validar estructura del token
         if 'access_token' not in token_data:
             xbmc.log('MAL Auth Error: No access_token in response', xbmc.LOGERROR)
-            xbmcgui.Dialog().notification('MAL Error', 'Token inválido recibido')
+            xbmc.log(f'MAL Auth: Response data: {token_data}', xbmc.LOGDEBUG)
+            xbmcgui.Dialog().notification('MAL Error', 'Token de acceso no encontrado en respuesta')
             return None
-            
-        # Agregar timestamp para expiración
+        
+        # Agregar timestamp para manejo de expiración
         import time
         token_data['obtained_at'] = int(time.time())
         
-        with open(TOKEN_FILE, 'w', encoding='utf-8') as f:
-            json.dump(token_data, f, ensure_ascii=False, indent=2)
+        # Guardar token de forma segura
+        try:
+            with open(TOKEN_FILE, 'w', encoding='utf-8') as f:
+                json.dump(token_data, f, ensure_ascii=False, indent=2)
+            xbmc.log('MAL Auth: Token guardado exitosamente', xbmc.LOGINFO)
+        except Exception as e:
+            xbmc.log(f'MAL Auth Error: Failed to save token - {str(e)}', xbmc.LOGERROR)
+            xbmcgui.Dialog().notification('MAL Error', f'Error guardando token: {str(e)}')
+            return None
             
-        xbmc.log('MAL Auth: Token guardado exitosamente', xbmc.LOGINFO)
         return token_data.get('access_token')
         
+    except requests.exceptions.Timeout:
+        xbmcgui.Dialog().notification('MAL Tracker', 'Timeout - El servidor tardó demasiado en responder')
+        return None
+    except requests.exceptions.ConnectionError:
+        xbmcgui.Dialog().notification('MAL Tracker', 'Error de conexión - Verifica tu internet')
+        return None
     except requests.exceptions.RequestException as e:
-        xbmcgui.Dialog().notification('MAL Tracker', f'Request Error: {str(e)}')
+        xbmc.log(f'MAL Auth: Request error - {str(e)}', xbmc.LOGERROR)
+        xbmcgui.Dialog().notification('MAL Tracker', f'Error de red: {str(e)}')
         return None
     except Exception as e:
-        xbmcgui.Dialog().notification('MAL Tracker', f'Error: {str(e)}')
+        xbmc.log(f'MAL Auth: Unexpected error - {str(e)}', xbmc.LOGERROR)
+        xbmcgui.Dialog().notification('MAL Tracker', f'Error inesperado: {str(e)}')
         return None
 
 # Paso 3: Cargar el token de acceso guardado
