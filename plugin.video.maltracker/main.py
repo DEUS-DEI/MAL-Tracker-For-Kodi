@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'resources'))
-from resources import auth, mal_api, mal_search, config_importer, public_api, streaming_integration, local_database, sync_manager, advanced_search, notifications, ai_recommendations, multimedia, personalization, gamification, backup_system, jikan_api, jikan_functions
+from resources import auth, mal_api, mal_search, config_importer, public_api, streaming_integration, local_database, sync_manager, advanced_search, notifications, ai_recommendations, multimedia, personalization, gamification, backup_system, jikan_api, jikan_functions, translator, settings_menu
 
 ADDON = xbmcaddon.Addon()
 HANDLE = int(sys.argv[1])
@@ -103,6 +103,22 @@ def router(paramstring):
             jikan_functions.show_genres_menu(HANDLE, BASE_URL, ICON, FANART)
         elif params.get('action') == 'jikan_characters':
             jikan_functions.show_characters_menu(HANDLE, BASE_URL, ICON, FANART)
+        elif params.get('action') == 'settings_menu':
+            settings_menu.show_settings_menu(HANDLE, BASE_URL, ICON, FANART)
+        elif params.get('action') == 'auth_menu':
+            settings_menu.show_auth_menu(HANDLE, BASE_URL, ICON, FANART)
+        elif params.get('action') == 'sync_menu':
+            settings_menu.show_sync_menu(HANDLE, BASE_URL, ICON, FANART)
+        elif params.get('action') == 'addon_settings':
+            settings_menu.show_addon_settings()
+        elif params.get('action') == 'auth_help':
+            settings_menu.show_auth_help()
+        elif params.get('action') == 'sync_help':
+            settings_menu.show_sync_help()
+        elif params.get('action') == 'system_info':
+            settings_menu.show_system_info()
+        elif params.get('action') == 'logout':
+            settings_menu.logout_user()
         else:
             show_main_menu()
     else:
@@ -173,28 +189,7 @@ def show_main_menu():
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=streaming_status', li, False)
     
-    # Estado de sincronización
-    sync_status = sync_manager.get_sync_status()
-    if sync_status['is_authenticated']:
-        # Importar sincronización híbrida
-        from resources import hybrid_sync
-        compat_status = hybrid_sync.get_sync_compatibility_status()
-        
-        sync_title = f"🔄 Sincronizar ({sync_status['unsynced_count']} pendientes, {compat_status['sync_percentage']}% compatible)"
-        li = xbmcgui.ListItem(sync_title)
-        li.setArt({'icon': ICON, 'fanart': FANART})
-        
-        # Menú contextual con información de compatibilidad
-        context_menu = [
-            ('Ver compatibilidad', f'RunPlugin({BASE_URL}?action=sync_compatibility)')
-        ]
-        li.addContextMenuItems(context_menu)
-        
-        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=sync_now', li, False)
-    else:
-        li = xbmcgui.ListItem('🔒 Autenticar para sincronizar')
-        li.setArt({'icon': ICON, 'fanart': FANART})
-        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=auth', li, False)
+
     
     # Recomendaciones IA
     li = xbmcgui.ListItem('🤖 Recomendaciones IA')
@@ -240,6 +235,11 @@ def show_main_menu():
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=jikan_menu', li, True)
     
+    # Configuración y Autenticación
+    li = xbmcgui.ListItem('⚙️ Configuración y Cuentas')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=settings_menu', li, True)
+    
     # Notificaciones
     notif_status = notifications.get_notifications_status()
     notif_title = f"🔔 Notificaciones ({notif_status['active_count']}/3 activas)"
@@ -247,26 +247,7 @@ def show_main_menu():
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=notifications', li, False)
     
-    if is_authenticated():
-        li = xbmcgui.ListItem('Ver mi lista de anime')
-        li.setArt({'icon': ICON, 'fanart': FANART})
-        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=list', li, True)
-        
-        li = xbmcgui.ListItem('Buscar anime (privado)')
-        li.setArt({'icon': ICON, 'fanart': FANART})
-        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=search', li, True)
-        
-        li = xbmcgui.ListItem('Reautenticar')
-        li.setArt({'icon': ICON, 'fanart': FANART})
-        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=auth', li, False)
-    else:
-        li = xbmcgui.ListItem('Autenticar con MyAnimeList')
-        li.setArt({'icon': ICON, 'fanart': FANART})
-        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=auth', li, False)
-        
-    li = xbmcgui.ListItem('Importar configuración')
-    li.setArt({'icon': ICON, 'fanart': FANART})
-    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=import_config', li, False)
+
     
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -439,10 +420,16 @@ def search_anime_public():
             xbmcplugin.endOfDirectory(HANDLE)
             return
         for anime in results['data']:
+            # Traducir datos del anime
+            anime_translated = translator.SimpleTranslator.translate_anime_data(anime)
+            
             title = anime.get('title', 'Sin título')
             anime_id = anime.get('mal_id')
             score = anime.get('score', 0)
             episodes = anime.get('episodes', 0)
+            status = translator.SimpleTranslator.translate_text(anime.get('status', ''))
+            anime_type = translator.SimpleTranslator.translate_text(anime.get('type', ''))
+            genres = translator.SimpleTranslator.translate_genres(anime.get('genres', []))
             image_url = anime.get('images', {}).get('jpg', {}).get('image_url', ICON)
             
             # Crear botón de reproducción estilo Netflix
@@ -450,9 +437,17 @@ def search_anime_public():
             
             li = xbmcgui.ListItem(title)
             li.setArt({'thumb': image_url, 'poster': image_url, 'fanart': FANART})
+            # Crear descripción traducida
+            plot_parts = [f'Puntuación: {score}/10']
+            if episodes: plot_parts.append(f'Episodios: {episodes}')
+            if status: plot_parts.append(f'Estado: {status}')
+            if anime_type: plot_parts.append(f'Tipo: {anime_type}')
+            if genres: plot_parts.append(f'Géneros: {", ".join(genres[:3])}')
+            plot_parts.append(f'\n{watch_button["title"]}')
+            
             li.setInfo('video', {
                 'title': title,
-                'plot': f'Puntuación: {score}/10\nEpisodios: {episodes}\n\n{watch_button["title"]}',
+                'plot': '\n'.join(plot_parts),
                 'rating': float(score) if score else 0,
                 'episode': episodes if episodes else 0,
                 'mediatype': 'tvshow'
