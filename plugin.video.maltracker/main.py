@@ -85,6 +85,8 @@ def router(paramstring):
             personalization.show_personalization_menu()
         elif params.get('action') == 'backup':
             backup_system.show_backup_menu()
+        elif params.get('action') == 'token_backup':
+            show_token_backup_menu()
         elif params.get('action') == 'multimedia':
             show_multimedia_content(params)
         elif params.get('action') == 'sync_compatibility':
@@ -218,6 +220,11 @@ def show_main_menu():
     li = xbmcgui.ListItem('💾 Backup y Exportación')
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=backup', li, False)
+    
+    # Backup completo con tokens
+    li = xbmcgui.ListItem('🔐 Backup Completo (con tokens)')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=token_backup', li, False)
     
     # Seguridad
     li = xbmcgui.ListItem('🔒 Seguridad y Auditoría')
@@ -365,6 +372,11 @@ def manual_authenticate():
 def show_manual_auth_help_menu():
     from resources import manual_auth
     manual_auth.show_manual_auth_help()
+
+def show_token_backup_menu():
+    """Mostrar menú de backup completo con tokens"""
+    from resources import token_backup
+    token_backup.TokenBackupManager.show_backup_menu()
 
 def list_anime():
     if not is_authenticated():
