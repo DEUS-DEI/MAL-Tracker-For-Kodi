@@ -609,12 +609,24 @@ def show_schedule_day(params):
             
         # Procesar datos según estructura de respuesta
         anime_list = []
-        if day == 'all':
-            # Para toda la semana, los datos están organizados por día
-            for day_data in results['data']:
-                anime_list.extend(day_data)
-        else:
-            anime_list = results['data']
+        
+        # Verificar si data es una lista o diccionario
+        data = results.get('data', [])
+        
+        if isinstance(data, list):
+            anime_list = data
+        elif isinstance(data, dict):
+            # Si es diccionario, puede estar organizado por días
+            for key, value in data.items():
+                if isinstance(value, list):
+                    anime_list.extend(value)
+                elif isinstance(value, dict):
+                    anime_list.append(value)
+        
+        if not anime_list:
+            xbmcgui.Dialog().notification(ADDON_NAME, 'No hay anime programado para este día')
+            xbmcplugin.endOfDirectory(HANDLE)
+            return
             
         for anime in anime_list:
             title = anime.get('title', 'Sin título')
