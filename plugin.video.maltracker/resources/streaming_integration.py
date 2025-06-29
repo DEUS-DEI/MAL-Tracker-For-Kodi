@@ -8,7 +8,8 @@ def check_addon_installed(addon_id):
     try:
         addon = xbmcaddon.Addon(addon_id)
         return True
-    except:
+    except Exception as e:
+        # Silently handle missing addons
         return False
 
 def get_available_streaming_addons():

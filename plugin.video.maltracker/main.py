@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'resources'))
-from resources import auth, mal_api, mal_search, config_importer, public_api, streaming_integration, local_database, sync_manager, advanced_search, notifications, ai_recommendations, multimedia, personalization, gamification, backup_system
+from resources import auth, mal_api, mal_search, config_importer, public_api, streaming_integration, local_database, sync_manager, advanced_search, notifications, ai_recommendations, multimedia, personalization, gamification, backup_system, jikan_api, jikan_functions
 
 ADDON = xbmcaddon.Addon()
 HANDLE = int(sys.argv[1])
@@ -95,18 +95,29 @@ def router(paramstring):
         elif params.get('action') == 'complete_apis':
             from resources.complete_apis_menu import show_complete_apis_menu
             show_complete_apis_menu()
+        elif params.get('action') == 'jikan_menu':
+            jikan_functions.show_jikan_menu(HANDLE, BASE_URL, ICON, FANART)
+        elif params.get('action') == 'jikan_random':
+            jikan_functions.show_random_anime(HANDLE, BASE_URL, ICON, FANART)
+        elif params.get('action') == 'jikan_genres':
+            jikan_functions.show_genres_menu(HANDLE, BASE_URL, ICON, FANART)
+        elif params.get('action') == 'jikan_characters':
+            jikan_functions.show_characters_menu(HANDLE, BASE_URL, ICON, FANART)
         else:
             show_main_menu()
     else:
         show_main_menu()
 
 def show_main_menu():
-    # Inicializar todos los sistemas
-    local_database.init_database()
-    notifications.init_notifications()
-    personalization.init_personalization()
-    gamification.init_gamification()
-    backup_system.init_backup_system()
+    # Inicializar todos los sistemas con manejo de errores
+    try:
+        local_database.init_database()
+        notifications.init_notifications()
+        personalization.init_personalization()
+        gamification.init_gamification()
+        backup_system.init_backup_system()
+    except Exception as e:
+        xbmc.log(f'{ADDON_NAME}: Error initializing systems - {str(e)}', xbmc.LOGDEBUG)
     
     # Auto-sincronización, notificaciones y gamificación
     sync_manager.auto_sync_if_authenticated()
@@ -223,6 +234,11 @@ def show_main_menu():
     li = xbmcgui.ListItem('📡 APIs Completas (24/24)')
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=complete_apis', li, False)
+    
+    # Jikan API (Gratis)
+    li = xbmcgui.ListItem('🆓 Jikan API (Sin autenticación)')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=jikan_menu', li, True)
     
     # Notificaciones
     notif_status = notifications.get_notifications_status()
@@ -417,7 +433,7 @@ def search_anime_public():
     try:
         xbmcplugin.setPluginCategory(HANDLE, f'Búsqueda pública: {query}')
         xbmcplugin.setContent(HANDLE, 'tvshows')
-        results = public_api.search_anime_public(query)
+        results = jikan_api.JikanAPI.search_anime(query)
         if not results or 'data' not in results:
             xbmcgui.Dialog().notification(ADDON_NAME, 'No se encontraron resultados')
             xbmcplugin.endOfDirectory(HANDLE)
@@ -467,7 +483,7 @@ def show_top_anime():
     try:
         xbmcplugin.setPluginCategory(HANDLE, 'Top Anime')
         xbmcplugin.setContent(HANDLE, 'tvshows')
-        results = public_api.get_top_anime_public()
+        results = jikan_api.JikanAPI.get_top_anime()
         if not results or 'data' not in results:
             xbmcgui.Dialog().notification(ADDON_NAME, 'No se pudo obtener el top')
             xbmcplugin.endOfDirectory(HANDLE)
@@ -511,7 +527,7 @@ def show_seasonal_anime():
     try:
         xbmcplugin.setPluginCategory(HANDLE, 'Anime de Temporada')
         xbmcplugin.setContent(HANDLE, 'tvshows')
-        results = public_api.get_seasonal_anime_public()
+        results = jikan_api.JikanAPI.get_current_season()
         if not results or 'data' not in results:
             xbmcgui.Dialog().notification(ADDON_NAME, 'No se pudo obtener anime de temporada')
             xbmcplugin.endOfDirectory(HANDLE)
