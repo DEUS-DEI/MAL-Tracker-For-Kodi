@@ -16,7 +16,9 @@ ICON = ADDON.getAddonInfo('icon')
 FANART = ADDON.getAddonInfo('fanart')
 
 def is_authenticated():
-    return auth.load_access_token() is not None
+    # Verificar autenticación híbrida
+    from resources import hybrid_api
+    return hybrid_api.HybridAPI.get_primary_service() is not None
 
 def router(paramstring):
     params = dict(urllib.parse.parse_qsl(paramstring))
@@ -31,6 +33,10 @@ def router(paramstring):
             manual_authenticate()
         elif params.get('action') == 'auth_help_manual':
             show_manual_auth_help_menu()
+        elif params.get('action') == 'service_config':
+            show_service_config_menu()
+        elif params.get('action') == 'service_status':
+            show_service_status()
         elif params.get('action') == 'search':
             search_anime()
         elif params.get('action') == 'details':
@@ -246,6 +252,11 @@ def show_main_menu():
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=jikan_menu', li, True)
     
+    # Configuración de servicios
+    li = xbmcgui.ListItem('🔧 Configurar Servicios (AniList/MAL)')
+    li.setArt({'icon': ICON, 'fanart': FANART})
+    xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=service_config', li, True)
+    
     # Configuración y Autenticación
     li = xbmcgui.ListItem('⚙️ Configuración y Cuentas')
     li.setArt({'icon': ICON, 'fanart': FANART})
@@ -378,15 +389,30 @@ def show_token_backup_menu():
     from resources import token_backup
     token_backup.TokenBackupManager.show_backup_menu()
 
+def show_service_config_menu():
+    """Mostrar menú de configuración de servicios"""
+    from resources import service_manager
+    service_manager.ServiceManager.show_service_selection_menu()
+
+def show_service_status():
+    """Mostrar estado de servicios"""
+    from resources import hybrid_api
+    hybrid_api.HybridAPI.show_service_status()
+
 def list_anime():
-    if not is_authenticated():
+    # Verificar autenticación híbrida
+    from resources import hybrid_api
+    primary_service = hybrid_api.HybridAPI.get_primary_service()
+    
+    if not primary_service:
         xbmcgui.Dialog().notification(ADDON_NAME, 'Debes autenticarte primero')
         xbmcplugin.endOfDirectory(HANDLE)
         return
+        
     try:
-        xbmcplugin.setPluginCategory(HANDLE, 'Mi Lista de Anime')
+        xbmcplugin.setPluginCategory(HANDLE, f'Mi Lista ({primary_service.upper()})')
         xbmcplugin.setContent(HANDLE, 'tvshows')
-        anime_list = mal_api.get_user_anime_list()
+        anime_list = hybrid_api.HybridAPI.get_user_anime_list()
         if not anime_list or 'data' not in anime_list:
             xbmcgui.Dialog().notification(ADDON_NAME, 'No se pudo obtener la lista')
             xbmcplugin.endOfDirectory(HANDLE)
@@ -457,25 +483,45 @@ def search_anime_public():
         xbmcplugin.endOfDirectory(HANDLE)
         return
     try:
-        xbmcplugin.setPluginCategory(HANDLE, f'Búsqueda pública: {query}')
+        xbmcplugin.setPluginCategory(HANDLE, f'Búsqueda híbrida: {query}')
         xbmcplugin.setContent(HANDLE, 'tvshows')
-        results = jikan_api.JikanAPI.search_anime(query)
+        
+        # Usar API híbrida primero
+        from resources import hybrid_api
+        results = hybrid_api.HybridAPI.search_anime(query)
+        
+        # Fallback a Jikan si híbrida falla
+        if not results or 'data' not in results:
+            results = jikan_api.JikanAPI.search_anime(query)
+            
         if not results or 'data' not in results:
             xbmcgui.Dialog().notification(ADDON_NAME, 'No se encontraron resultados')
             xbmcplugin.endOfDirectory(HANDLE)
             return
         for anime in results['data']:
-            # Traducir datos del anime
-            anime_translated = translator.SimpleTranslator.translate_anime_data(anime)
-            
-            title = anime.get('title', 'Sin título')
-            anime_id = anime.get('mal_id')
-            score = anime.get('score', 0)
-            episodes = anime.get('episodes', 0)
-            status = translator.SimpleTranslator.translate_text(anime.get('status', ''))
-            anime_type = translator.SimpleTranslator.translate_text(anime.get('type', ''))
-            genres = translator.SimpleTranslator.translate_genres(anime.get('genres', []))
-            image_url = anime.get('images', {}).get('jpg', {}).get('image_url', ICON)
+            # Manejar datos híbridos o Jikan
+            if anime.get('source') in ['anilist', 'mal']:
+                # Datos híbridos normalizados
+                title = anime.get('title', 'Sin título')
+                anime_id = anime.get('id')
+                score = anime.get('score', 0)
+                episodes = anime.get('episodes', 0)
+                status = anime.get('status', '')
+                genres = anime.get('genres', [])
+                image_url = anime.get('image_url', ICON)
+                source_icon = '🔵' if anime.get('source') == 'anilist' else '🔴'
+                title = f"{source_icon} {title}"
+            else:
+                # Datos de Jikan (fallback)
+                anime_translated = translator.SimpleTranslator.translate_anime_data(anime)
+                title = anime.get('title', 'Sin título')
+                anime_id = anime.get('mal_id')
+                score = anime.get('score', 0)
+                episodes = anime.get('episodes', 0)
+                status = translator.SimpleTranslator.translate_text(anime.get('status', ''))
+                genres = translator.SimpleTranslator.translate_genres(anime.get('genres', []))
+                image_url = anime.get('images', {}).get('jpg', {}).get('image_url', ICON)
+                title = f"🆓 {title}"  # Jikan es gratis
             
             # Crear botón de reproducción estilo Netflix
             watch_button = streaming_integration.create_watch_button(title, anime_id)
@@ -487,7 +533,9 @@ def search_anime_public():
             if episodes: plot_parts.append(f'Episodios: {episodes}')
             if status: plot_parts.append(f'Estado: {status}')
             if anime_type: plot_parts.append(f'Tipo: {anime_type}')
-            if genres: plot_parts.append(f'Géneros: {", ".join(genres[:3])}')
+            if isinstance(genres, list) and genres:
+                genre_names = [g if isinstance(g, str) else g.get('name', '') for g in genres]
+                plot_parts.append(f'Géneros: {", ".join(genre_names[:3])}')
             plot_parts.append(f'\n{watch_button["title"]}')
             
             li.setInfo('video', {
