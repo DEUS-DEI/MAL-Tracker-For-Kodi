@@ -83,7 +83,7 @@ def get_schedule_public(day=None):
     """Calendario de emisiones de anime"""
     try:
         rate_limit()
-        if day:
+        if day and day != 'all':
             url = f"https://api.jikan.moe/v4/schedules/{day.lower()}"
         else:
             url = f"https://api.jikan.moe/v4/schedules"
@@ -92,12 +92,20 @@ def get_schedule_public(day=None):
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         
-        return response.json()
+        data = response.json()
+        
+        # Validar estructura de respuesta
+        if isinstance(data, dict) and 'data' in data:
+            return data
+        else:
+            import xbmc
+            xbmc.log(f'Public API: Invalid schedule response format', xbmc.LOGWARNING)
+            return {'data': []}
         
     except Exception as e:
         import xbmc
         xbmc.log(f'Public API Error: {str(e)}', xbmc.LOGERROR)
-        return None
+        return {'data': []}
 
 def get_upcoming_anime_public():
     """Próximos estrenos de anime"""
