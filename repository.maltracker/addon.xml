@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.maltracker" name="MAL Tracker Repository" version="1.0.0" provider-name="MAL Tracker Dev">
+    <requires>
+        <import addon="xbmc.addon" version="12.0.0"/>
+    </requires>
+    <extension point="xbmc.addon.repository" name="MAL Tracker Repository">
+        <dir>
+            <info compressed="false">https://raw.githubusercontent.com/username/mal-tracker-repo/main/addons.xml</info>
+            <checksum>https://raw.githubusercontent.com/username/mal-tracker-repo/main/addons.xml.md5</checksum>
+            <datadir zip="true">https://raw.githubusercontent.com/username/mal-tracker-repo/main/</datadir>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en">MAL Tracker Add-on Repository</summary>
+        <summary lang="es">Repositorio de MAL Tracker</summary>
+        <description lang="en">Repository to install MAL Tracker addon for Kodi. Integrates MyAnimeList, AniList and multiple anime streaming sites.</description>
+        <description lang="es">Repositorio para instalar el addon MAL Tracker en Kodi. Integra MyAnimeList, AniList y múltiples sitios de streaming de anime.</description>
+        <disclaimer lang="en">The owners and submitters to this add-on do not host or distribute any of the content displayed by these add-ons nor do they have any affiliation with the content providers.</disclaimer>
+        <disclaimer lang="es">Los propietarios y distribuidores de este add-on no proveen ni distribuyen ningún contenido mostrado por el add-on ni tienen afiliación alguna con los proveedores del contenido.</disclaimer>
+        <platform>all</platform>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
+        <source>https://github.com/username/mal-tracker-repo</source>
+    </extension>
+</addon>
