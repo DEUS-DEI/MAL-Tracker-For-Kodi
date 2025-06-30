@@ -1,0 +1,55 @@
+name: Release Addon
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Get version from addon.xml
+      id: version
+      run: |
+        VERSION=$(grep -oP 'version="\K[^"]+' plugin.video.maltracker/addon.xml)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Build addon package
+      run: |
+        cd plugin.video.maltracker
+        zip -r ../plugin.video.maltracker-${{ steps.version.outputs.version }}.zip . \
+          -x "*.pyc" "__pycache__/*" "*.log" "*.tmp" "*.bak"
+        cd ..
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: MAL Tracker v${{ steps.version.outputs.version }}
+        files: plugin.video.maltracker-${{ steps.version.outputs.version }}.zip
+        body: |
+          ## MAL Tracker for Kodi v${{ steps.version.outputs.version }}
+          
+          ### 🎬 Características:
+          - Integración con MyAnimeList y AniList
+          - Scrapers avanzados (AnimeFLV, JKanime)
+          - Auto-reproducción de episodios
+          - Sistema híbrido de APIs
+          - 16 sitios de streaming experto
+          
+          ### 📦 Instalación:
+          1. Descargar `plugin.video.maltracker-${{ steps.version.outputs.version }}.zip`
+          2. En Kodi: Addons → Instalar desde archivo ZIP
+          3. Seleccionar el archivo descargado
+          
+          ### ⚙️ Configuración:
+          - Configurar Client ID de MAL/AniList
+          - Activar streaming experto (opcional)
+          - Configurar servicios híbridos
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

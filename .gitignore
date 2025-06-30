@@ -30,3 +30,9 @@ anilist_token.json
 # Archivos de prueba
 test_*.py
 debug_*.py
+
+# Archivos de build
+*.zip
+
+# GitHub Actions (opcional)
+# .github/

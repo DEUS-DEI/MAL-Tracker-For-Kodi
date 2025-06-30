@@ -1,0 +1,53 @@
+name: Manual Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_assets:
+        description: 'Include assets folder'
+        required: false
+        default: false
+        type: boolean
+      custom_name:
+        description: 'Custom filename (optional)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  manual-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set filename
+      id: filename
+      run: |
+        if [ -n "${{ github.event.inputs.custom_name }}" ]; then
+          echo "filename=${{ github.event.inputs.custom_name }}" >> $GITHUB_OUTPUT
+        else
+          echo "filename=plugin.video.maltracker-$(date +%Y%m%d-%H%M)" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Build addon (without assets)
+      if: github.event.inputs.include_assets == 'false'
+      run: |
+        cd plugin.video.maltracker
+        zip -r ../${{ steps.filename.outputs.filename }}.zip . \
+          -x "*.pyc" "__pycache__/*" "*.log" "*.tmp" "*.bak"
+        cd ..
+        
+    - name: Build addon (with assets)
+      if: github.event.inputs.include_assets == 'true'
+      run: |
+        zip -r ${{ steps.filename.outputs.filename }}.zip plugin.video.maltracker assets \
+          -x "*.pyc" "__pycache__/*" "*.log" "*.tmp" "*.bak"
+        
+    - name: Upload build
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.filename.outputs.filename }}
+        path: ${{ steps.filename.outputs.filename }}.zip
+        retention-days: 30
