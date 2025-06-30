@@ -28,11 +28,13 @@ jobs:
         path: plugin.video.maltracker.zip
         retention-days: 30
         
-    - name: Create Release (on tag)
-      if: startsWith(github.ref, 'refs/tags/')
+    - name: Auto-create release (on version change)
+      if: startsWith(github.ref, 'refs/tags/') || contains(github.event.head_commit.message, '[release]')
       uses: softprops/action-gh-release@v1
       with:
         files: plugin.video.maltracker.zip
         generate_release_notes: true
+        tag_name: auto-${{ github.run_number }}
+        name: Auto Release ${{ github.run_number }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

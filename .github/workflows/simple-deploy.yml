@@ -1,0 +1,47 @@
+name: Auto Deploy Repository
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'plugin.video.maltracker/**'
+      - 'repository.maltracker/**'
+      - 'create_repo.py'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 12 * * *'  # Daily at 12:00 UTC
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Build repository
+      run: |
+        python create_repo.py
+        echo "✓ Repository built successfully"
+        echo "Generated files:"
+        ls -la *.xml *.zip 2>/dev/null || echo "No files generated"
+        
+    - name: Verify files
+      run: |
+        if [ ! -f "addons.xml" ]; then echo "❌ addons.xml missing"; exit 1; fi
+        if [ ! -f "repository.maltracker.zip" ]; then echo "❌ repository.maltracker.zip missing"; exit 1; fi
+        echo "✅ All required files present"
+      
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
+        publish_branch: gh-pages
+        force_orphan: true
+        enable_jekyll: false
+        commit_message: 'Auto-deploy repository ${{ github.sha }}'
