@@ -297,8 +297,8 @@ tu propia responsabilidad y riesgo."""
         options = []
         
         # Opciones de scraping (reproducir en Kodi)
-        from . import video_scrapers
-        scrapers = video_scrapers.VideoScrapers.get_available_scrapers()
+        from . import simple_scraper
+        scrapers = simple_scraper.SimpleScraper.get_available_scrapers()
         
         for site_key, scraper_info in scrapers.items():
             if scraper_info['supported']:

@@ -7,14 +7,9 @@ import urllib.parse
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'resources'))
 
-# Verificar dependencias de scraping
-try:
-    from bs4 import BeautifulSoup
-    SCRAPING_AVAILABLE = True
-except ImportError:
-    BeautifulSoup = None
-    SCRAPING_AVAILABLE = False
-    xbmc.log('MAL Tracker: BeautifulSoup not available - scraping disabled', xbmc.LOGWARNING)
+# Scraping siempre disponible (sin dependencias externas)
+SCRAPING_AVAILABLE = True
+xbmc.log('MAL Tracker: Simple scraper enabled (no external dependencies)', xbmc.LOGINFO)
 from resources import auth, mal_api, mal_search, config_importer, public_api, streaming_integration, local_database, sync_manager, advanced_search, notifications, ai_recommendations, multimedia, personalization, gamification, backup_system, jikan_api, jikan_functions, translator, settings_menu
 
 ADDON = xbmcaddon.Addon()
@@ -56,6 +51,10 @@ def router(paramstring):
             scrape_episodes(params)
         elif params.get('action') == 'play_episode':
             play_episode_direct(params)
+        elif params.get('action') == 'player_settings':
+            show_player_settings()
+        elif params.get('action') == 'player_control':
+            player_control(params)
         elif params.get('action') == 'search':
             search_anime()
         elif params.get('action') == 'details':
@@ -226,6 +225,15 @@ def show_main_menu():
         li = xbmcgui.ListItem('🔓 Streaming Experto (16 sitios)')
         li.setArt({'icon': ICON, 'fanart': FANART})
         xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=expert_streaming', li, True)
+    
+    # Reproductor automático
+    from resources import auto_player
+    player_info = auto_player.auto_player.get_playback_info()
+    if player_info:
+        player_title = f"▶️ Auto-Player ({player_info['progress']})"
+        li = xbmcgui.ListItem(player_title)
+        li.setArt({'icon': ICON, 'fanart': FANART})
+        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=player_settings', li, False)
     
 
     
@@ -447,19 +455,36 @@ def expert_search_all_sites(params):
 
 def scrape_episodes(params):
     """Scraper de episodios para reproducir en Kodi"""
-    from resources import video_scrapers
+    from resources import simple_scraper
     anime_title = params.get('title', '')
     site = params.get('site', 'animeflv')
     if anime_title:
-        video_scrapers.VideoScrapers.show_episodes_menu(anime_title, site)
+        simple_scraper.SimpleScraper.show_episodes_menu(anime_title, site)
 
 def play_episode_direct(params):
     """Reproducir episodio directamente"""
-    from resources import video_scrapers
+    from resources import simple_scraper
     episode_url = params.get('url', '')
     site = params.get('site', 'animeflv')
     if episode_url:
-        video_scrapers.VideoScrapers.play_episode(episode_url, site)
+        simple_scraper.SimpleScraper.play_episode(episode_url, site)
+
+def show_player_settings():
+    """Mostrar configuración del reproductor"""
+    from resources import simple_scraper
+    simple_scraper.SimpleScraper.show_playback_settings()
+
+def player_control(params):
+    """Controles del reproductor"""
+    from resources import auto_player
+    action = params.get('control', '')
+    
+    if action == 'toggle_auto':
+        auto_player.auto_player.toggle_auto_next()
+    elif action == 'show_episodes':
+        auto_player.auto_player.show_episode_menu()
+    elif action == 'stop':
+        auto_player.auto_player.stop()
 
 def list_anime():
     # Verificar autenticación híbrida
