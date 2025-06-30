@@ -26,6 +26,7 @@ jobs:
       with:
         name: plugin.video.maltracker
         path: plugin.video.maltracker.zip
+        retention-days: 30
         
     - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/')
