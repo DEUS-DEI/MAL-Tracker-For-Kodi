@@ -455,11 +455,23 @@ def expert_search_all_sites(params):
 
 def scrape_episodes(params):
     """Scraper de episodios para reproducir en Kodi"""
-    from resources import simple_scraper
     anime_title = params.get('title', '')
     site = params.get('site', 'animeflv')
+    
     if anime_title:
-        simple_scraper.SimpleScraper.show_episodes_menu(anime_title, site)
+        # Determinar tipo de scraper
+        if site.endswith('_advanced'):
+            from resources import alfa_scrapers
+            scraper_func = alfa_scrapers.AlfaScrapers.get_available_scrapers()[site]['scraper']
+            episodes = scraper_func(anime_title)
+            
+            if episodes:
+                show_advanced_episodes_menu(episodes, anime_title, site)
+            else:
+                xbmcgui.Dialog().notification('Scraper Avanzado', 'No se encontraron episodios')
+        else:
+            from resources import simple_scraper
+            simple_scraper.SimpleScraper.show_episodes_menu(anime_title, site)
 
 def play_episode_direct(params):
     """Reproducir episodio directamente"""
@@ -485,6 +497,68 @@ def player_control(params):
         auto_player.auto_player.show_episode_menu()
     elif action == 'stop':
         auto_player.auto_player.stop()
+
+def show_advanced_episodes_menu(episodes, anime_title, site):
+    """Mostrar menú de episodios avanzado"""
+    if not episodes:
+        return
+    
+    # Opciones de reproducción
+    options = [
+        '▶️ Reproducir desde episodio... (Avanzado)',
+        '🔄 Reproducir todo con auto-siguiente',
+        '🔍 Ver lista completa'
+    ]
+    
+    mode = xbmcgui.Dialog().select(f'{anime_title} - Scraper Avanzado:', options)
+    
+    if mode == 0:  # Episodio específico
+        episode_titles = [ep['title'] for ep in episodes]
+        selected = xbmcgui.Dialog().select(f'Episodios - {anime_title}:', episode_titles)
+        
+        if selected != -1:
+            start_advanced_playback(episodes, anime_title, site, selected)
+            
+    elif mode == 1:  # Reproducir todo
+        start_advanced_playback(episodes, anime_title, site, 0)
+        
+    elif mode == 2:  # Lista completa
+        show_episodes_list(episodes, anime_title, site)
+
+def start_advanced_playback(episodes, anime_title, site, start_index=0):
+    """Iniciar reproducción con scraper avanzado"""
+    from resources import auto_player, alfa_scrapers
+    
+    # Configurar extractor avanzado
+    extractor = alfa_scrapers.AlfaScrapers.get_available_scrapers()[site]['extractor']
+    
+    # Modificar episodios para usar extractor avanzado
+    for episode in episodes:
+        episode['extractor'] = extractor
+        episode['site'] = site
+    
+    # Configurar reproductor
+    auto_player.auto_player.set_playlist(episodes, anime_title, site, start_index)
+    
+    # Iniciar reproducción
+    if auto_player.auto_player.play_current_episode():
+        xbmcgui.Dialog().notification('Scraper Avanzado', f'Iniciando {anime_title}')
+    else:
+        xbmcgui.Dialog().notification('Error', 'No se pudo iniciar reproducción avanzada')
+
+def show_episodes_list(episodes, anime_title, site):
+    """Mostrar lista detallada de episodios"""
+    episode_info = f"EPISODIOS DE {anime_title.upper()}:\n\n"
+    episode_info += f"Total: {len(episodes)} episodios\n"
+    episode_info += f"Scraper: {site}\n\n"
+    
+    for i, ep in enumerate(episodes[:10]):  # Mostrar primeros 10
+        episode_info += f"{i+1:2d}. {ep['title']}\n"
+    
+    if len(episodes) > 10:
+        episode_info += f"\n... y {len(episodes) - 10} episodios más"
+    
+    xbmcgui.Dialog().textviewer('Lista de Episodios', episode_info)
 
 def list_anime():
     # Verificar autenticación híbrida

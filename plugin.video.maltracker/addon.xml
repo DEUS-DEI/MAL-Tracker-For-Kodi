@@ -6,6 +6,9 @@
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.31.0"/>
+        <import addon="script.module.html5lib" version="0.999.0" optional="true"/>
+        <import addon="script.module.pyaes" optional="true"/>
+        <import addon="script.module.futures" optional="true"/>
     </requires>
     <extension point="xbmc.python.pluginsource" library="main.py">
         <provides>video</provides>

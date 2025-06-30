@@ -297,8 +297,14 @@ tu propia responsabilidad y riesgo."""
         options = []
         
         # Opciones de scraping (reproducir en Kodi)
-        from . import simple_scraper
+        from . import simple_scraper, alfa_scrapers
+        
+        # Scrapers básicos
         scrapers = simple_scraper.SimpleScraper.get_available_scrapers()
+        
+        # Scrapers avanzados (estilo Alfa)
+        advanced_scrapers = alfa_scrapers.AlfaScrapers.get_available_scrapers()
+        scrapers.update(advanced_scrapers)
         
         for site_key, scraper_info in scrapers.items():
             if scraper_info['supported']:

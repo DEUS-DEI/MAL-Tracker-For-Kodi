@@ -31,9 +31,14 @@ class AutoPlayer(xbmc.Player):
             
         episode = self.episodes[self.current_index]
         
-        # Extraer URL de video
-        from . import simple_scraper
-        video_url = simple_scraper.SimpleScraper.extract_video_url(episode['url'], self.site)
+        # Determinar método de extracción
+        if 'extractor' in episode:
+            # Usar extractor avanzado
+            video_url = episode['extractor'](episode['url'])
+        else:
+            # Usar scraper simple
+            from . import simple_scraper
+            video_url = simple_scraper.SimpleScraper.extract_video_url(episode['url'], self.site)
         
         if video_url:
             # Crear ListItem con información
