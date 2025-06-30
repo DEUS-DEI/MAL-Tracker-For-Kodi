@@ -6,6 +6,15 @@ import sys
 import urllib.parse
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'resources'))
+
+# Verificar dependencias de scraping
+try:
+    from bs4 import BeautifulSoup
+    SCRAPING_AVAILABLE = True
+except ImportError:
+    BeautifulSoup = None
+    SCRAPING_AVAILABLE = False
+    xbmc.log('MAL Tracker: BeautifulSoup not available - scraping disabled', xbmc.LOGWARNING)
 from resources import auth, mal_api, mal_search, config_importer, public_api, streaming_integration, local_database, sync_manager, advanced_search, notifications, ai_recommendations, multimedia, personalization, gamification, backup_system, jikan_api, jikan_functions, translator, settings_menu
 
 ADDON = xbmcaddon.Addon()
@@ -43,6 +52,10 @@ def router(paramstring):
             expert_search_site(params)
         elif params.get('action') == 'expert_search_all':
             expert_search_all_sites(params)
+        elif params.get('action') == 'scrape_episodes':
+            scrape_episodes(params)
+        elif params.get('action') == 'play_episode':
+            play_episode_direct(params)
         elif params.get('action') == 'search':
             search_anime()
         elif params.get('action') == 'details':
@@ -432,6 +445,22 @@ def expert_search_all_sites(params):
     if query:
         expert_streaming.ExpertStreaming.search_all_sites(query)
 
+def scrape_episodes(params):
+    """Scraper de episodios para reproducir en Kodi"""
+    from resources import video_scrapers
+    anime_title = params.get('title', '')
+    site = params.get('site', 'animeflv')
+    if anime_title:
+        video_scrapers.VideoScrapers.show_episodes_menu(anime_title, site)
+
+def play_episode_direct(params):
+    """Reproducir episodio directamente"""
+    from resources import video_scrapers
+    episode_url = params.get('url', '')
+    site = params.get('site', 'animeflv')
+    if episode_url:
+        video_scrapers.VideoScrapers.play_episode(episode_url, site)
+
 def list_anime():
     # Verificar autenticación híbrida
     from resources import hybrid_api
@@ -597,6 +626,8 @@ def search_anime_public():
                     context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=expert_search&site={option["site"]}&query={urllib.parse.quote(option["query"])})'))
                 elif option['action'] == 'expert_search_all':
                     context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=expert_search_all&query={urllib.parse.quote(option["query"])})'))
+                elif option['action'] == 'scrape_episodes':
+                    context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=scrape_episodes&title={urllib.parse.quote(title)}&site={option["site"]})'))
             
             li.addContextMenuItems(context_menu)
             
@@ -653,6 +684,8 @@ def show_top_anime():
                     context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=expert_search&site={option["site"]}&query={urllib.parse.quote(option["query"])})'))
                 elif option['action'] == 'expert_search_all':
                     context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=expert_search_all&query={urllib.parse.quote(option["query"])})'))
+                elif option['action'] == 'scrape_episodes':
+                    context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=scrape_episodes&title={urllib.parse.quote(title)}&site={option["site"]})'))
             
             li.addContextMenuItems(context_menu)
             

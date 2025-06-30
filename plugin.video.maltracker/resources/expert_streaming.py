@@ -296,7 +296,20 @@ tu propia responsabilidad y riesgo."""
         
         options = []
         
-        # Agregar sitios favoritos primero
+        # Opciones de scraping (reproducir en Kodi)
+        from . import video_scrapers
+        scrapers = video_scrapers.VideoScrapers.get_available_scrapers()
+        
+        for site_key, scraper_info in scrapers.items():
+            if scraper_info['supported']:
+                options.append({
+                    'title': f"▶️ {scraper_info['name']} (Ver en Kodi)",
+                    'action': 'scrape_episodes',
+                    'site': site_key,
+                    'query': anime_title
+                })
+        
+        # Agregar sitios favoritos (abrir navegador)
         try:
             addon = xbmcaddon.Addon()
             favorites = addon.getSetting('expert_favorites').split(',')
@@ -305,7 +318,7 @@ tu propia responsabilidad y riesgo."""
                 if site_key in ExpertStreaming.STREAMING_SITES:
                     site = ExpertStreaming.STREAMING_SITES[site_key]
                     options.append({
-                        'title': f"🔓 {site['icon']} {site['name']}",
+                        'title': f"🔓 {site['icon']} {site['name']} (Navegador)",
                         'action': 'expert_search',
                         'site': site_key,
                         'query': anime_title
