@@ -37,6 +37,12 @@ def router(paramstring):
             show_service_config_menu()
         elif params.get('action') == 'service_status':
             show_service_status()
+        elif params.get('action') == 'expert_streaming':
+            show_expert_streaming_menu()
+        elif params.get('action') == 'expert_search':
+            expert_search_site(params)
+        elif params.get('action') == 'expert_search_all':
+            expert_search_all_sites(params)
         elif params.get('action') == 'search':
             search_anime()
         elif params.get('action') == 'details':
@@ -200,6 +206,13 @@ def show_main_menu():
     li = xbmcgui.ListItem(streaming_status)
     li.setArt({'icon': ICON, 'fanart': FANART})
     xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=streaming_status', li, False)
+    
+    # Streaming experto (solo si está activado)
+    from resources import expert_streaming
+    if expert_streaming.ExpertStreaming.is_expert_mode_enabled():
+        li = xbmcgui.ListItem('🔓 Streaming Experto (16 sitios)')
+        li.setArt({'icon': ICON, 'fanart': FANART})
+        xbmcplugin.addDirectoryItem(HANDLE, f'{BASE_URL}?action=expert_streaming', li, True)
     
 
     
@@ -399,6 +412,26 @@ def show_service_status():
     from resources import hybrid_api
     hybrid_api.HybridAPI.show_service_status()
 
+def show_expert_streaming_menu():
+    """Mostrar menú de streaming experto"""
+    from resources import expert_streaming
+    expert_streaming.ExpertStreaming.show_expert_streaming_menu()
+
+def expert_search_site(params):
+    """Buscar en sitio específico"""
+    from resources import expert_streaming
+    site = params.get('site')
+    query = params.get('query', '')
+    if site and query:
+        expert_streaming.ExpertStreaming.open_site_search(site, query)
+
+def expert_search_all_sites(params):
+    """Buscar en todos los sitios alternativos"""
+    from resources import expert_streaming
+    query = params.get('query', '')
+    if query:
+        expert_streaming.ExpertStreaming.search_all_sites(query)
+
 def list_anime():
     # Verificar autenticación híbrida
     from resources import hybrid_api
@@ -556,6 +589,15 @@ def search_anime_public():
             else:
                 context_menu.append((watch_button['title'], f'RunPlugin({BASE_URL}?action=install_streaming)'))
             
+            # Opciones de streaming experto
+            from resources import expert_streaming
+            expert_options = expert_streaming.ExpertStreaming.get_expert_watch_options(title)
+            for option in expert_options:
+                if option['action'] == 'expert_search':
+                    context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=expert_search&site={option["site"]}&query={urllib.parse.quote(option["query"])})'))
+                elif option['action'] == 'expert_search_all':
+                    context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=expert_search_all&query={urllib.parse.quote(option["query"])})'))
+            
             li.addContextMenuItems(context_menu)
             
             url = f"{BASE_URL}?action=details_public&anime_id={anime_id}"
@@ -602,6 +644,16 @@ def show_top_anime():
                 context_menu.append((watch_button['title'], f'RunPlugin({BASE_URL}?action=watch_anime&anime_title={urllib.parse.quote(title)}&anime_id={anime_id})'))
             else:
                 context_menu.append((watch_button['title'], f'RunPlugin({BASE_URL}?action=install_streaming)'))
+            
+            # Opciones de streaming experto para top anime
+            from resources import expert_streaming
+            expert_options = expert_streaming.ExpertStreaming.get_expert_watch_options(title)
+            for option in expert_options:
+                if option['action'] == 'expert_search':
+                    context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=expert_search&site={option["site"]}&query={urllib.parse.quote(option["query"])})'))
+                elif option['action'] == 'expert_search_all':
+                    context_menu.append((option['title'], f'RunPlugin({BASE_URL}?action=expert_search_all&query={urllib.parse.quote(option["query"])})'))
+            
             li.addContextMenuItems(context_menu)
             
             url = f"{BASE_URL}?action=details_public&anime_id={anime_id}"

@@ -14,6 +14,9 @@
             <setting id="debug_logging" type="boolean" label="30003" default="false">
                 <level>0</level>
             </setting>
+            <setting id="expert_streaming" type="boolean" label="30005" default="false">
+                <level>2</level>
+            </setting>
         </group>
     </category>
     <category id="anilist" label="30200">
