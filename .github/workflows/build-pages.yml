@@ -43,8 +43,9 @@ jobs:
         zip -r ../../repository.maltracker.zip .
         cd ../..
         
-        # Copy index.html for Pages
+        # Copy files for Pages
         cp repository/pages/index.html .
+        cp README.md .
         
         echo "✓ All files built for Pages"
         
