@@ -5,8 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'plugin.video.maltracker/**'
-      - 'repository.maltracker/**'
-      - 'create_repo.py'
+      - 'repository/**'
 
 permissions:
   contents: write
@@ -31,20 +30,20 @@ jobs:
         zip -r ../plugin.video.maltracker.zip . -x "*.pyc" "__pycache__/*"
         cd ..
         
-        # Create addons.xml manually
+        # Create addons.xml (addon + repositorio)
         echo '<?xml version="1.0" encoding="UTF-8"?>' > addons.xml
         echo '<addons>' >> addons.xml
         sed '1d' plugin.video.maltracker/addon.xml >> addons.xml
-        sed '1d' repository.maltracker/addon.xml >> addons.xml
+        sed '1d' repository/repository.maltracker/addon.xml >> addons.xml
         echo '</addons>' >> addons.xml
         
         # Create MD5
         md5sum addons.xml | cut -d' ' -f1 > addons.xml.md5
         
         # Create repository ZIP
-        cd repository.maltracker
-        zip -r ../repository.maltracker.zip .
-        cd ..
+        cd repository/repository.maltracker
+        zip -r ../../repository.maltracker.zip .
+        cd ../..
         
         echo "✓ Repository built successfully"
         echo "Generated files:"
@@ -75,9 +74,8 @@ jobs:
           - `addons.xml` - Lista de addons
           - `addons.xml.md5` - Checksum
           
-          **🌐 URL del repositorio:**
-          ```
-          https://deus-dei.github.io/MAL-Tracker-For-Kodi/repository.maltracker.zip
-          ```
+          **🌐 URLs disponibles:**
+          - Pages: `https://deus-dei.github.io/MAL-Tracker-For-Kodi/repository.maltracker.zip`
+          - Release: Descargar desde esta release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
