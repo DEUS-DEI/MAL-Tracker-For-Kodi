@@ -23,10 +23,33 @@ jobs:
         
     - name: Build all files
       run: |
+        # Build addon
         cd plugin.video.maltracker
         zip -r ../plugin.video.maltracker.zip . -x "*.pyc" "__pycache__/*"
         cd ..
-        python create_repo.py
+        
+        # Build repository manually (sin create_repo.py)
+        mkdir -p temp_repo
+        cp -r plugin.video.maltracker temp_repo/
+        cp -r repository.maltracker temp_repo/
+        
+        # Create addons.xml
+        cat > addons.xml << 'EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <addons>
+        EOF
+        cat plugin.video.maltracker/addon.xml | sed 's/<?xml.*?>//' >> addons.xml
+        cat repository.maltracker/addon.xml | sed 's/<?xml.*?>//' >> addons.xml
+        echo '</addons>' >> addons.xml
+        
+        # Create MD5
+        md5sum addons.xml | cut -d' ' -f1 > addons.xml.md5
+        
+        # Create repository ZIP
+        cd repository.maltracker
+        zip -r ../repository.maltracker.zip .
+        cd ..
+        
         echo "✓ All files built for Pages"
         
     - name: Deploy to GitHub Pages
