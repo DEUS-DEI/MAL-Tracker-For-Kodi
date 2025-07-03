@@ -8,6 +8,9 @@ on:
       - 'repository.maltracker/**'
       - 'create_repo.py'
 
+permissions:
+  contents: write
+
 
 jobs:
   build-repository:
@@ -34,12 +37,28 @@ jobs:
         if [ ! -f "repository.maltracker.zip" ]; then echo "❌ repository.maltracker.zip missing"; exit 1; fi
         echo "✅ All required files present"
       
-    - name: Upload repository artifacts
-      uses: actions/upload-artifact@v4
+    - name: Create repository release
+      uses: softprops/action-gh-release@v1
       with:
-        name: kodi-repository
-        path: |
+        files: |
           addons.xml
           addons.xml.md5
-          *.zip
-        retention-days: 30
+          plugin.video.maltracker.zip
+          repository.maltracker.zip
+        tag_name: repo-v1.0.${{ github.run_number }}
+        name: Repository v1.0.${{ github.run_number }}
+        body: |
+          ## 📦 MAL Tracker Repository
+          
+          **Archivos incluidos:**
+          - `repository.maltracker.zip` - Instalar repositorio
+          - `plugin.video.maltracker.zip` - Addon directo
+          - `addons.xml` - Lista de addons
+          - `addons.xml.md5` - Checksum
+          
+          **🌐 URL del repositorio:**
+          ```
+          https://deus-dei.github.io/MAL-Tracker-For-Kodi/repository.maltracker.zip
+          ```
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -23,12 +23,7 @@ jobs:
         cd ..
         echo "✓ Addon built successfully"
         
-    - name: Upload addon artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: plugin.video.maltracker
-        path: plugin.video.maltracker.zip
-        retention-days: 30
+
         
     - name: Create auto release
       uses: softprops/action-gh-release@v1
