@@ -1,0 +1,42 @@
+# Kodi Media Center language file
+# Addon Name: MAL Tracker
+# Addon id: plugin.video.maltracker
+
+msgid ""
+msgstr ""
+
+msgctxt "#30001"
+msgid "Client ID"
+msgstr "ID de Cliente"
+
+msgctxt "#30002"
+msgid "Client Secret"
+msgstr "Secreto de Cliente"
+
+msgctxt "#30003"
+msgid "Debug Logging"
+msgstr "Registro de Depuración"
+
+msgctxt "#30004"
+msgid "Redirect URI"
+msgstr "URI de Redirección"
+
+msgctxt "#30005"
+msgid "Expert Streaming Sites"
+msgstr "Sitios de Streaming Experto"
+
+msgctxt "#30100"
+msgid "MyAnimeList"
+msgstr "MyAnimeList"
+
+msgctxt "#30200"
+msgid "AniList"
+msgstr "AniList"
+
+msgctxt "#30201"
+msgid "AniList Client ID"
+msgstr "ID de Cliente AniList"
+
+msgctxt "#30202"
+msgid "AniList Client Secret"
+msgstr "Secreto de Cliente AniList"

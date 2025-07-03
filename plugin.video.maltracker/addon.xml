@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.maltracker"
+       name="MAL Tracker"
+       version="1.0.0"
+       provider-name="MAL-Tracker-Dev">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+        <import addon="script.module.requests" version="2.31.0"/>
+        <import addon="script.module.html5lib" version="0.999.0" optional="true"/>
+        <import addon="script.module.pyaes" optional="true"/>
+        <import addon="script.module.futures" optional="true"/>
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="main.py">
+        <provides>video</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">MyAnimeList tracker for Kodi</summary>
+        <description lang="en_GB">Track, search and update your MyAnimeList anime collection directly from Kodi using the official MAL API v2 with OAuth2 authentication.</description>
+        <platform>all</platform>
+        <license>MIT</license>
+        <website>https://github.com/user/mal-tracker-kodi</website>
+        <source>https://github.com/user/mal-tracker-kodi</source>
+        <news>v1.0.0 - Initial release with full MAL API v2 compliance</news>
+    </extension>
+</addon>

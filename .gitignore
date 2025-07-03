@@ -1,0 +1,38 @@
+# Archivos temporales
+*.pyc
+*.pyo
+__pycache__/
+*.tmp
+*.log
+
+# Archivos de configuración local
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Assets y recursos no versionados
+assets/
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de tokens (seguridad)
+token.json
+anilist_token.json
+*.malb
+
+# Archivos de prueba
+test_*.py
+debug_*.py
+
+# Archivos de build
+*.zip
+
+# GitHub Actions (opcional)
+# .github/
