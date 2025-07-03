@@ -1,11 +1,8 @@
-name: Build MAL Tracker Addon
+name: Build Addon
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: [ main ]
 
 permissions:
   contents: write
@@ -19,11 +16,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Create addon zip
+    - name: Build addon
       run: |
         cd plugin.video.maltracker
         zip -r ../plugin.video.maltracker.zip . -x "*.pyc" "__pycache__/*" "*.log" "*.tmp"
         cd ..
+        echo "✓ Addon built successfully"
         
     - name: Upload addon artifact
       uses: actions/upload-artifact@v4

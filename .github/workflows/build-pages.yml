@@ -1,0 +1,40 @@
+name: Build Pages
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-pages:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Build all files
+      run: |
+        cd plugin.video.maltracker
+        zip -r ../plugin.video.maltracker.zip . -x "*.pyc" "__pycache__/*"
+        cd ..
+        python create_repo.py
+        echo "✓ All files built for Pages"
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
+        publish_branch: gh-pages
+        force_orphan: true
+        enable_jekyll: false
+        commit_message: 'Deploy pages ${{ github.sha }}'

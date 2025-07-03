@@ -1,4 +1,4 @@
-name: Auto Deploy Repository
+name: Build Repository
 
 on:
   push:
@@ -7,12 +7,10 @@ on:
       - 'plugin.video.maltracker/**'
       - 'repository.maltracker/**'
       - 'create_repo.py'
-  workflow_dispatch:
-  schedule:
-    - cron: '0 12 * * *'  # Daily at 12:00 UTC
+
 
 jobs:
-  deploy:
+  build-repository:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -36,12 +34,12 @@ jobs:
         if [ ! -f "repository.maltracker.zip" ]; then echo "❌ repository.maltracker.zip missing"; exit 1; fi
         echo "✅ All required files present"
       
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Upload repository artifacts
+      uses: actions/upload-artifact@v4
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./
-        publish_branch: gh-pages
-        force_orphan: true
-        enable_jekyll: false
-        commit_message: 'Auto-deploy repository ${{ github.sha }}'
+        name: kodi-repository
+        path: |
+          addons.xml
+          addons.xml.md5
+          *.zip
+        retention-days: 30
