@@ -16,19 +16,40 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Build addon
+    - name: Build all files
       run: |
+        # Build addon
         cd plugin.video.maltracker
         zip -r ../plugin.video.maltracker.zip . -x "*.pyc" "__pycache__/*" "*.log" "*.tmp"
         cd ..
-        echo "✓ Addon built successfully"
+        
+        # Create addons.xml
+        echo '<?xml version="1.0" encoding="UTF-8"?>' > addons.xml
+        echo '<addons>' >> addons.xml
+        sed '1d' plugin.video.maltracker/addon.xml >> addons.xml
+        sed '1d' repository/repository.maltracker/addon.xml >> addons.xml
+        echo '</addons>' >> addons.xml
+        
+        # Create MD5
+        md5sum addons.xml | cut -d' ' -f1 > addons.xml.md5
+        
+        # Create repository ZIP
+        cd repository/repository.maltracker
+        zip -r ../../repository.maltracker.zip .
+        cd ../..
+        
+        echo "✓ All files built successfully"
         
 
         
     - name: Create auto release
       uses: softprops/action-gh-release@v1
       with:
-        files: plugin.video.maltracker.zip
+        files: |
+          plugin.video.maltracker.zip
+          repository.maltracker.zip
+          addons.xml
+          addons.xml.md5
         generate_release_notes: true
         tag_name: v1.0.${{ github.run_number }}
         name: MAL Tracker v1.0.${{ github.run_number }}
@@ -41,7 +62,13 @@ jobs:
           - Auto-reproducción
           - 16 sitios streaming
           
+          📦 **Archivos incluidos:**
+          - `plugin.video.maltracker.zip` - Addon principal
+          - `repository.maltracker.zip` - Repositorio Kodi
+          - `addons.xml` - Lista de addons
+          - `addons.xml.md5` - Checksum
+          
           📦 **Instalación:**
-          Descargar `plugin.video.maltracker.zip`
+          Descargar `repository.maltracker.zip` para repositorio completo
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
